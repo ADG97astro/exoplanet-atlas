@@ -1,6 +1,6 @@
 # Exoplanet Atlas
 
-An interactive 3D map of the exoplanet literature. Each dot is a paper: height is time, the horizontal plane groups papers by subfield into columns, and dot size reflects citations. Drag to rotate, scroll to zoom, right-drag to pan. Search titles, filter by year (or play the years), colour by subfield or year, toggle subfield names and slow rotation, and click a paper to see its links to other papers in the atlas.
+An interactive 3D map of the exoplanet literature. Each dot is a paper: height is time, the horizontal plane groups papers by subfield into columns, and dot size reflects citations. Drag to rotate, scroll to zoom, right-drag to pan. Search titles and authors, choose a range of years (from and to, or play the years), colour by subfield or year, toggle subfield names and slow rotation, and click a paper to see its links to other papers in the atlas.
 
 Live site: https://adg97astro.github.io/exoplanet-atlas/
 
@@ -122,3 +122,5 @@ Authors and institutions come from ADS and are added at the end of a full build.
 ```bash
 python scripts/build_atlas.py --people-only
 ```
+
+Each paper also stores its first 20 authors (names in one shared table, `authors`, with `au` holding indices and `na` the full count when there are more). The search box matches titles and author names ("Winn", "Winn, J." or "Joshua Winn"), and author names in the paper details and About panel are clickable.

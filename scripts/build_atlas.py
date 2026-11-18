@@ -463,13 +463,36 @@ def add_people(result, client, cfg):
     ids = [p["id"] for p in result["papers"]]
     print(f"Authors and affiliations for {len(ids)} papers ...")
     docs = client.bigquery(ids, fl="bibcode,author,aff")
-    people = {}
+    people, ordered = {}, {}
     for d in docs:
-        authors = (d.get("author") or [])[: cfg.get("max_authors_per_paper", 50)]
+        full = d.get("author") or []
+        authors = full[: cfg.get("max_authors_per_paper", 50)]
         affs = d.get("aff") or []
         names = {n for n in (norm_author(a) for a in authors) if n}
         inst = norm_inst(affs[0]) if affs else None
         people[d.get("bibcode")] = (names, inst)
+        seen, keep = set(), []
+        for a in full[: cfg.get("max_authors_stored", 20)]:
+            n = norm_author(a)
+            if n and n not in seen:
+                seen.add(n); keep.append(n)
+        ordered[d.get("bibcode")] = (keep, len(full))
+
+    # per-paper author lists for searching and display, stored as indices into one name table
+    table, idx = [], {}
+    for p in result["papers"]:
+        keep, total = ordered.get(p["id"], ([], 0))
+        au = []
+        for n in keep:
+            if n not in idx:
+                idx[n] = len(table); table.append(n)
+            au.append(idx[n])
+        p["au"] = au
+        if total > len(au):
+            p["na"] = total
+        elif "na" in p:
+            del p["na"]
+    result["authors"] = table
 
     a_count = collections.defaultdict(collections.Counter)
     i_count = collections.defaultdict(collections.Counter)

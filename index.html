@@ -136,6 +136,8 @@
   #detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--mute); font-size: 14px; }
   #detail dd { margin: 0; color: var(--ink); }
   #detail a { color: var(--focus); }
+  #detail .linkish { padding: 0; font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; }
+  #detail .linkish:hover { text-decoration: underline; }
   .hint { color: var(--mute); font-size: 14px; margin: 0; }
 
   @media (max-width: 820px) {
@@ -173,8 +175,8 @@
 
   <aside>
     <div>
-      <label class="t" for="q">Search titles</label>
-      <input id="q" type="search" placeholder="e.g. transit, retrieval, TESS" autocomplete="off">
+      <label class="t" for="q">Search titles and authors</label>
+      <input id="q" type="search" placeholder="e.g. TESS, retrieval, Winn" autocomplete="off">
     </div>
 
     <details id="aboutBox" open>
@@ -183,7 +185,10 @@
     </details>
 
     <div>
-      <label class="t" for="year">Show papers up to <span id="yearLabel"></span></label>
+      <div class="field-title">Show papers from <span id="fromLabel"></span> to <span id="yearLabel"></span></div>
+      <label class="sub" for="yearFrom">From</label>
+      <input id="yearFrom" type="range">
+      <label class="sub" for="year">To</label>
       <input id="year" type="range">
       <div id="status" aria-live="polite"></div>
       <div class="btns">
@@ -268,8 +273,8 @@
   // ---------- state ----------
   let papers = [], clusters = [], byId = new Map(), citedBy = new Map(), meta = {};
   let cmap = new Map(), roots = [], maxDepth = 1, level = 1;
-  let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, span = 1;
-  let query = "", colorMode = "cluster", hasFlags = false, topPct = 12, paperMode = "top";
+  let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, yearFrom = 0, span = 1;
+  let queryAlt = "", query = "", colorMode = "cluster", hasFlags = false, topPct = 12, paperMode = "top";
   const TOP_TARGET = 6000; // default view for big maps: roughly this many papers
   let hidden = new Set(), expanded = new Set(), selected = null, hover = null, focus = null;
   let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [];
@@ -451,15 +456,18 @@
     papers = data.papers || [];
     meta = data.meta || {};
     if (!papers.length) { fail("No papers found in data/papers.json."); return; }
+    const authorTable = data.authors || [];
     papers.forEach((p) => {
       p.refs = (p.refs || []).map((r) => (typeof r === "number" ? (papers[r] && papers[r].id) : r)).filter(Boolean);
+      p._au = (p.au || []).map((i) => authorTable[i]).filter(Boolean);
+      p._la = p._au.join(" | ").toLowerCase();
     });
     byId = new Map(papers.map((p) => [p.id, p]));
     citedBy = new Map();
     yearMin = Infinity; yearMax = -Infinity;
     for (const p of papers) { yearMin = Math.min(yearMin, p.year); yearMax = Math.max(yearMax, p.year); }
     span = yearMax + 1 - yearMin;
-    yearCap = yearMax; yearCapF = yearMax;
+    yearCap = yearMax; yearCapF = yearMax; yearFrom = yearMin;
     hasFlags = papers.some((p) => p.flag);
     yearCols = [];
     for (let y = yearMin; y <= yearMax; y++) yearCols.push(yearColor((y - yearMin) / Math.max(1, yearMax - yearMin)));
@@ -482,6 +490,8 @@
     buildClusterLabels();
     buildLevelControl();
 
+    const yf = $("#yearFrom");
+    yf.min = yearMin; yf.max = yearMax; yf.value = yearMin;
     const yr = $("#year");
     yr.min = yearMin; yr.max = yearMax; yr.value = yearMax;
     $("#yb0").textContent = yearMin; $("#yb1").textContent = yearMax;
@@ -578,10 +588,10 @@
     let shown = 0;
     for (let i = 0; i < N; i++) {
       const p = papers[i];
-      let off = p.year > yearCap || (effPct() < 100 && p._yi >= topK(p.year));
+      let off = p.year > yearCap || p.year < yearFrom || (effPct() < 100 && p._yi >= topK(p.year));
       if (!off && hidden.size) for (const id of p._path) if (hidden.has(id)) { off = true; break; }
       const vis = !off;
-      const m = !query || p._lc.includes(query);
+      const m = !query || p._lc.includes(query) || (p._la && (p._la.includes(query) || (queryAlt && p._la.includes(queryAlt))));
       p._vis = vis; p._m = m;
       let a = !vis ? 0 : (m ? 0.9 : 0.07), size = p._size;
       let c = byYear ? yearCols[p.year - yearMin] : atLevel(p).color;
@@ -596,6 +606,7 @@
     geom.attributes.aSize.needsUpdate = true;
     geom.attributes.aAlpha.needsUpdate = true;
     $("#yearLabel").textContent = yearCap;
+    $("#fromLabel").textContent = yearFrom;
     $("#status").textContent = shown + " of " + N + " papers shown";
     if (selected && !selected._vis) { selected = null; renderDetail(null); }
     buildLinks();
@@ -771,10 +782,34 @@
   $("#play").onclick = () => {
     playing = !playing;
     $("#play").textContent = playing ? "Pause" : "Play years";
-    if (playing) { yearCapF = yearCap >= yearMax ? yearMin : yearCap; if (yearCap >= yearMax) { yearCap = yearMin; $("#year").value = yearMin; refresh(); } }
+    if (playing) { yearCapF = yearCap >= yearMax ? yearFrom : yearCap; if (yearCap >= yearMax) { yearCap = yearFrom; $("#year").value = yearFrom; refresh(); } }
   };
-  $("#q").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); refresh(); });
-  $("#year").addEventListener("input", (e) => { playing = false; $("#play").textContent = "Play years"; yearCap = +e.target.value; yearCapF = yearCap; refresh(); });
+  function setQuery(text) {
+    query = text.trim().toLowerCase();
+    // "joshua winn" or "j winn" should also find the stored form "winn, j. ..."
+    const toks = query.split(/\s+/).filter(Boolean);
+    queryAlt = !query.includes(",") && toks.length >= 2 ? toks[toks.length - 1] + ", " + toks[0][0] : "";
+    refresh();
+  }
+  $("#q").addEventListener("input", (e) => setQuery(e.target.value));
+  function searchFor(name) {
+    $("#q").value = name;
+    setQuery(name);
+    $("#q").scrollIntoView({ block: "nearest" });
+  }
+  const stopPlay = () => { playing = false; $("#play").textContent = "Play years"; };
+  $("#year").addEventListener("input", (e) => {
+    stopPlay();
+    yearCap = +e.target.value; yearCapF = yearCap;
+    if (yearCap < yearFrom) { yearFrom = yearCap; $("#yearFrom").value = yearFrom; }  // keep from <= to
+    refresh();
+  });
+  $("#yearFrom").addEventListener("input", (e) => {
+    stopPlay();
+    yearFrom = +e.target.value;
+    if (yearFrom > yearCap) { yearCap = yearFrom; yearCapF = yearCap; $("#year").value = yearCap; }
+    refresh();
+  });
   document.querySelectorAll('input[name="cm"]').forEach((r) => r.addEventListener("change", (e) => {
     colorMode = e.target.value;
     $("#yearbar").hidden = $("#yearbarLabels").hidden = colorMode !== "year";
@@ -963,8 +998,18 @@
     return svg;
   }
 
-  function peopleLine(list) {
-    return list.map((a) => a[0] + " (" + a[1] + ")").join(", ");
+  function peopleLine(list, clickable) {
+    const p = el("p", "people");
+    list.forEach((a, i) => {
+      if (i) p.append(document.createTextNode(", "));
+      if (clickable) {
+        const b = el("button", "linkish", a[0]); b.type = "button";
+        b.title = "Show " + a[0] + "'s papers";
+        b.onclick = () => searchFor(a[0]);
+        p.append(b, document.createTextNode(" (" + a[1] + ")"));
+      } else p.append(document.createTextNode(a[0] + " (" + a[1] + ")"));
+    });
+    return p;
   }
 
   function renderAbout() {
@@ -1033,12 +1078,12 @@
     const authors = c ? c.authors : meta.authors;
     if (authors && authors.length) {
       box.append(el("h3", null, "Most frequent authors"));
-      box.append(el("p", "people", peopleLine(authors)));
+      box.append(peopleLine(authors, papers.some((p) => p._au.length)));
     }
     const inst = c ? c.institutions : meta.institutions;
     if (inst && inst.length) {
       box.append(el("h3", null, "Leading institutions (first author)"));
-      box.append(el("p", "people", peopleLine(inst)));
+      box.append(peopleLine(inst, false));
     }
     if ((authors && authors.length) || (inst && inst.length)) {
       box.append(el("p", "note", "Names are matched by surname and initials, and institutions come from first-author affiliations, so both are approximate."));
@@ -1056,6 +1101,21 @@
     const h2 = document.createElement("h2"); h2.textContent = p.title || p.id;
     const dl = document.createElement("dl");
     const row = (k, v) => { const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; dl.append(dt, dd); };
+    if (p._au && p._au.length) {
+      const dt = document.createElement("dt"); dt.textContent = "Authors";
+      const dd = document.createElement("dd");
+      const shown = p._au.slice(0, 6);
+      shown.forEach((n, i) => {
+        if (i) dd.append(document.createTextNode("; "));
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "linkish"; b.textContent = n; b.title = "Show " + n + "'s papers";
+        b.onclick = () => searchFor(n);
+        dd.append(b);
+      });
+      const total = p.na || p._au.length;
+      if (total > shown.length) dd.append(document.createTextNode(" and " + (total - shown.length) + " more"));
+      dl.append(dt, dd);
+    }
     row("Year", p.year);
     row("Subfield", p._path.map((id) => cmap.get(id).name).join(" \u203A "));
     row("Citations", p.cites == null ? "n/a" : p.cites);
