@@ -1,0 +1,15 @@
+# secrets - never commit these
+.env
+*.key
+secrets*
+ads_token*
+
+# raw downloads and caches (keep only the processed data/papers.json)
+data/raw/
+cache/
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+.vscode/
