@@ -13,6 +13,7 @@
     --ink: #e4ebf1;
     --mute: #8b9bab;
     --line: #1e2a37;
+    --dim: #2e3a47;
     --focus: #6ea2ff;
     --warn-bg: #3a2f0a;
     --warn-ink: #ffe9a8;
@@ -26,6 +27,7 @@
     --ink: #14202b;
     --mute: #566673;
     --line: #bcc8d0;
+    --dim: #c6cfd6;
     --focus: #0b5fff;
     --warn-bg: #fff1c9;
     --warn-ink: #4a3600;
@@ -277,7 +279,7 @@
   let queryAlt = "", query = "", colorMode = "cluster", hasFlags = false, topPct = 12, paperMode = "top";
   const TOP_TARGET = 6000; // default view for big maps: roughly this many papers
   let hidden = new Set(), expanded = new Set(), selected = null, hover = null, focus = null;
-  let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [];
+  let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [], hlGeom, hlPoints;
   let cam = { theta: HOME.theta, phi: HOME.phi, radius: HOME.radius, target: new THREE.Vector3() };
   let dirty = true, playing = false, interacting = false, pendingHover = null, last = performance.now();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -516,6 +518,12 @@
     points = new THREE.Points(geom, material);
     points.frustumCulled = false;
     scene.add(points);
+    // second layer, drawn last, so search matches always sit on top of the darkened dots
+    hlGeom = new THREE.BufferGeometry();
+    hlPoints = new THREE.Points(hlGeom, material);
+    hlPoints.frustumCulled = false;
+    hlPoints.renderOrder = 1;
+    scene.add(hlPoints);
   }
 
   function buildGrid() {
@@ -585,6 +593,8 @@
   function refresh() {
     const flagMode = hasFlags && $("#flags").checked;
     const byYear = colorMode === "year";
+    const dimColor = new THREE.Color(css("--dim"));
+    const hl = [];
     let shown = 0;
     for (let i = 0; i < N; i++) {
       const p = papers[i];
@@ -593,11 +603,13 @@
       const vis = !off;
       const m = !query || p._lc.includes(query) || (p._la && (p._la.includes(query) || (queryAlt && p._la.includes(queryAlt))));
       p._vis = vis; p._m = m;
-      let a = !vis ? 0 : (m ? 0.9 : 0.07), size = p._size;
+      let a = !vis ? 0 : (m ? 0.9 : 0.55), size = p._size;
       let c = byYear ? yearCols[p.year - yearMin] : atLevel(p).color;
       if (flagMode && vis) {
         if (p.flag) { c = FLAG_COLOR; size *= 1.7; a = m ? 1 : 0.1; } else a = Math.min(a, 0.12);
       }
+      if (query && vis && !m) { c = dimColor; size *= 0.85; }  // non-matches: dark grey, still visible
+      if (query && vis && m) { size *= 1.3; hl.push(i); }
       if (vis && m) shown++;
       colA[3 * i] = c.r; colA[3 * i + 1] = c.g; colA[3 * i + 2] = c.b;
       sizeA[i] = size; alphaA[i] = a;
@@ -605,6 +617,18 @@
     geom.attributes.aColor.needsUpdate = true;
     geom.attributes.aSize.needsUpdate = true;
     geom.attributes.aAlpha.needsUpdate = true;
+    // matches redrawn on top so darkened dots in front of them do not hide them
+    const hp = new Float32Array(hl.length * 3), hc = new Float32Array(hl.length * 3), hs = new Float32Array(hl.length), ha = new Float32Array(hl.length);
+    hl.forEach((i, k) => {
+      hp.set(pos.subarray(3 * i, 3 * i + 3), 3 * k);
+      hc.set(colA.subarray(3 * i, 3 * i + 3), 3 * k);
+      hs[k] = sizeA[i]; ha[k] = 1;
+    });
+    hlGeom.setAttribute("position", new THREE.BufferAttribute(hp, 3));
+    hlGeom.setAttribute("aColor", new THREE.BufferAttribute(hc, 3));
+    hlGeom.setAttribute("aSize", new THREE.BufferAttribute(hs, 1));
+    hlGeom.setAttribute("aAlpha", new THREE.BufferAttribute(ha, 1));
+    hlPoints.visible = hl.length > 0;
     $("#yearLabel").textContent = yearCap;
     $("#fromLabel").textContent = yearFrom;
     $("#status").textContent = shown + " of " + N + " papers shown";
@@ -875,7 +899,7 @@
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem("atlas-theme", next); } catch (e) { /* storage unavailable */ }
     themeLabel();
-    if (N) { buildGrid(); buildLinks(); dirty = true; }
+    if (N) { buildGrid(); refresh(); }
   };
   themeLabel();
 
