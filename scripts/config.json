@@ -38,5 +38,6 @@
   "min_split_size": 150,
   "max_children": 8,
   "min_child_size": 20,
-  "forward_must_match": true
+  "forward_must_match": true,
+  "layout_compress": 0.5
 }

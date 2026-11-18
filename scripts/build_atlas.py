@@ -313,7 +313,7 @@ def name_clusters(tree, rows_of, x, terms, overrides):
     return names
 
 
-def _arrange(kids, sizes, weights):
+def _arrange(kids, sizes, weights, compress=0.5):
     """Place child clusters inside a unit disc. Returns {cid: (cx, cy, r)} with centres in [-0.7, 0.7]."""
     import networkx as nx
     import numpy as np
@@ -327,6 +327,13 @@ def _arrange(kids, sizes, weights):
     raw = nx.spring_layout(cg, weight="weight", seed=1, iterations=300)
     pts = np.array([raw[c] for c in kids], dtype=float)
     pts -= pts.mean(axis=0)
+    # Pull outlying groups inwards: a group that barely cites the others is still shown
+    # further out, but not so far that it sits alone at the edge of the map.
+    norms = np.linalg.norm(pts, axis=1)
+    med = float(np.median(norms))
+    if compress < 1 and med > 1e-9:
+        target = med * (norms / med) ** compress
+        pts *= (target / np.maximum(norms, 1e-12))[:, None]
     top = np.linalg.norm(pts, axis=1).max()
     pts *= 0.7 / top if top > 1e-9 else 1.0
     biggest = max(sizes)
@@ -339,7 +346,7 @@ def _arrange(kids, sizes, weights):
     return out
 
 
-def layout(g, leaf_of, index, x, tree):
+def layout(g, leaf_of, index, x, tree, compress=0.5):
     """Nested layout: children are arranged inside their parent's disc; leaves use a text projection."""
     import numpy as np
 
@@ -389,7 +396,7 @@ def layout(g, leaf_of, index, x, tree):
 
     def place(parent, cx, cy, radius):
         kids = kids_of.get(parent)
-        arr = _arrange(kids, [size[c] for c in kids], weights.get(parent, {}))
+        arr = _arrange(kids, [size[c] for c in kids], weights.get(parent, {}), compress)
         for c in kids:
             ox, oy, r = arr[c]
             ccx, ccy, cr = cx + radius * ox, cy + radius * oy, radius * r
@@ -423,7 +430,7 @@ def build(papers, cfg, overrides=None):
         for a in ancestors(leaf):
             rows_of[a].append(index[pid])
     names = name_clusters(tree, rows_of, x, terms, overrides or {})
-    xy, size = layout(g, leaf_of, index, x, tree)
+    xy, size = layout(g, leaf_of, index, x, tree, cfg.get("layout_compress", 0.5))
     # stretch the whole layout to fill the unit square (same scale on both axes)
     allxy = [xy[index[p["id"]]] for p in keep]
     lo_x, hi_x = min(a[0] for a in allxy), max(a[0] for a in allxy)

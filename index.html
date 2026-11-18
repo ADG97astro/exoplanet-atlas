@@ -5,8 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Exoplanet Atlas</title>
 <meta name="description" content="A 3D map of the exoplanet literature: papers, citations, subfields and sub-subfields.">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("atlas-theme") || "dark"; } catch (e) { document.documentElement.dataset.theme = "dark"; }</script>
 <style>
   :root {
+    --bg: #070b12;
+    --panel: #0e1520;
+    --ink: #e4ebf1;
+    --mute: #8b9bab;
+    --line: #1e2a37;
+    --focus: #6ea2ff;
+    --warn-bg: #3a2f0a;
+    --warn-ink: #ffe9a8;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
     --bg: #e7ecef;
     --panel: #f5f7f8;
     --ink: #14202b;
@@ -15,20 +29,7 @@
     --focus: #0b5fff;
     --warn-bg: #fff1c9;
     --warn-ink: #4a3600;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0d141a;
-      --panel: #17212a;
-      --ink: #e6edf2;
-      --mute: #93a3b0;
-      --line: #2c3b47;
-      --focus: #6ea2ff;
-      --warn-bg: #3a2f0a;
-      --warn-ink: #ffe9a8;
-    }
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -39,7 +40,17 @@
   }
   header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; padding: 14px 20px 10px; border-bottom: 1px solid var(--line); }
   h1 { margin: 0; font: 600 24px/1.1 var(--serif); letter-spacing: 0.01em; }
-  header p { margin: 0; color: var(--mute); max-width: 74ch; }
+  header p { margin: 0; color: var(--mute); max-width: 74ch; flex: 1; }
+  #theme { margin-left: auto; padding: 4px 10px; font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  #crumbs { position: absolute; left: 12px; top: 12px; right: 60px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; pointer-events: none; }
+  #crumbs[hidden] { display: none; }
+  #crumbs > * { pointer-events: auto; }
+  #back { padding: 6px 12px; font: inherit; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  #back:hover { border-color: var(--mute); }
+  .crumb { padding: 2px 4px; font: inherit; color: var(--mute); background: none; border: 0; border-radius: 4px; cursor: pointer; text-shadow: 0 0 4px var(--bg); }
+  .crumb:hover { color: var(--ink); text-decoration: underline; }
+  .crumb.here { color: var(--ink); font-weight: 600; cursor: default; text-decoration: none; }
+  .sep { color: var(--mute); }
   #banner { margin: 0; padding: 8px 20px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14px; }
   #banner[hidden] { display: none; }
   main { display: grid; grid-template-columns: 1fr 350px; min-height: 0; }
@@ -119,6 +130,7 @@
 <header>
   <h1>Exoplanet Atlas</h1>
   <p>Each dot is a paper. Height is time, with the oldest at the bottom. Papers in the same subfield form a column, and subfields split into smaller subfields inside it. Larger dots are cited more.</p>
+  <button type="button" id="theme"></button>
 </header>
 <p id="banner" hidden>Demo data: these dots are synthetic placeholders, not real papers. Add <code>data/papers.json</code> to replace them.</p>
 
@@ -126,10 +138,11 @@
   <div id="stage">
     <canvas id="map" tabindex="0" aria-label="3D map of exoplanet papers. Drag to rotate, scroll to zoom. With the map focused, arrow keys rotate and plus and minus zoom."></canvas>
     <div id="labels"></div>
+    <div id="crumbs" hidden></div>
     <div class="ring hover" id="ringHover"></div>
     <div class="ring" id="ringSel"></div>
     <div id="tip"></div>
-    <p id="help">Drag to rotate. Scroll to zoom. Right-drag or two fingers to pan. Click a subfield name to look inside it, or a paper for details.</p>
+    <p id="help">Drag to rotate. Scroll to zoom. Right-drag or two fingers to pan. Click a subfield name to look inside it (Back or Esc goes up), or a paper for details.</p>
     <div id="zoom">
       <button type="button" id="zin" aria-label="Zoom in">+</button>
       <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
@@ -217,7 +230,7 @@
   let cmap = new Map(), roots = [], maxDepth = 1, level = 1;
   let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, span = 1;
   let query = "", colorMode = "cluster", hasFlags = false;
-  let hidden = new Set(), expanded = new Set(), selected = null, hover = null;
+  let hidden = new Set(), expanded = new Set(), selected = null, hover = null, focus = null;
   let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [];
   let cam = { theta: HOME.theta, phi: HOME.phi, radius: HOME.radius, target: new THREE.Vector3() };
   let dirty = true, playing = false, interacting = false, pendingHover = null, last = performance.now();
@@ -689,8 +702,56 @@
   }));
   $("#names").addEventListener("change", () => { dirty = true; });
   $("#flags").addEventListener("change", refresh);
-  $("#showAll").onclick = () => { hidden = new Set(); expanded = new Set(); setLevel(1); buildLegend(); refresh(); };
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (N) { buildGrid(); buildLinks(); dirty = true; } });
+  function goOverview() { hidden = new Set(); expanded = new Set(); focus = null; setLevel(1); buildLegend(); refresh(); renderCrumbs(); }
+  function goBack() {
+    const c = focus && cmap.get(focus);
+    if (c && c.parent) drill(cmap.get(c.parent)); else goOverview();
+  }
+  $("#showAll").onclick = goOverview;
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !focus) return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    goBack();
+  });
+
+  function renderCrumbs() {
+    const box = $("#crumbs");
+    box.textContent = "";
+    if (!focus || !cmap.has(focus)) { box.hidden = true; return; }
+    box.hidden = false;
+    const back = document.createElement("button");
+    back.type = "button"; back.id = "back"; back.textContent = "\u2190 Back";
+    back.title = "Up one level (Esc)";
+    back.onclick = goBack;
+    box.append(back);
+    const path = [];
+    let c = cmap.get(focus), g = 0;
+    while (c && g++ < 12) { path.unshift(c); c = c.parent ? cmap.get(c.parent) : null; }
+    const crumb = (text, fn, here) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "crumb" + (here ? " here" : ""); b.textContent = text;
+      if (here) b.setAttribute("aria-current", "location"); else b.onclick = fn;
+      return b;
+    };
+    box.append(crumb("All subfields", goOverview, false));
+    path.forEach((node, i) => {
+      const sep = document.createElement("span"); sep.className = "sep"; sep.textContent = "\u203A";
+      box.append(sep, crumb(node.name, () => drill(node), i === path.length - 1));
+    });
+  }
+  function themeLabel() {
+    const dark = document.documentElement.dataset.theme !== "light";
+    $("#theme").textContent = dark ? "Light theme" : "Dark theme";
+    $("#theme").setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  }
+  $("#theme").onclick = () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("atlas-theme", next); } catch (e) { /* storage unavailable */ }
+    themeLabel();
+    if (N) { buildGrid(); buildLinks(); dirty = true; }
+  };
+  themeLabel();
 
   function buildLevelControl() {
     const box = $("#levels");
@@ -764,7 +825,8 @@
       if (c.parent) expanded.add(c.parent);
       c = c.parent ? cmap.get(c.parent) : null;
     }
-    buildLegend(); refresh();
+    focus = id;
+    buildLegend(); refresh(); renderCrumbs();
   }
 
   function select(p) {
