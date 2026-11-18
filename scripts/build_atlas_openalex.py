@@ -104,7 +104,7 @@ class OpenAlexClient:
         """Return up to max_n works matching a filter string."""
         path = self._cache_path("works", filt, sort, max_n)
         if path.exists():
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
         out, cursor = [], "*"
         while cursor and len(out) < max_n:
             data = self._get("/works", {"filter": filt, "sort": sort, "select": SELECT,
@@ -116,7 +116,7 @@ class OpenAlexClient:
             if not data["results"]:
                 break
         out = out[:max_n]
-        path.write_text(json.dumps(out))
+        path.write_text(json.dumps(out), encoding="utf-8")
         return out
 
     def by_ids(self, ids):
@@ -126,10 +126,10 @@ class OpenAlexClient:
             chunk = ids[i:i + PAGE]
             path = self._cache_path("ids", chunk)
             if path.exists():
-                out.extend(json.loads(path.read_text()))
+                out.extend(json.loads(path.read_text(encoding="utf-8")))
                 continue
             data = self._get("/works", {"filter": "openalex:" + "|".join(chunk), "select": SELECT, "per-page": PAGE})
-            path.write_text(json.dumps(data["results"]))
+            path.write_text(json.dumps(data["results"]), encoding="utf-8")
             out.extend(data["results"])
             print(f"  fetched metadata for {min(i + PAGE, len(ids))} of {len(ids)} works")
         return out
@@ -188,7 +188,7 @@ def main(argv=None, client=None):
     ap.add_argument("--seeds-only", action="store_true", help="only run the seed query and print a preview")
     args = ap.parse_args(argv)
 
-    cfg = json.loads(Path(args.config).read_text())
+    cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
     if client is None:
         key = os.environ.get("OPENALEX_API_KEY")
         if not key:
@@ -205,12 +205,12 @@ def main(argv=None, client=None):
         return 0
 
     papers = collect(client, cfg)
-    overrides = json.loads(Path(args.names).read_text()) if Path(args.names).exists() else {}
+    overrides = json.loads(Path(args.names).read_text(encoding="utf-8")) if Path(args.names).exists() else {}
     result, members, names = core.build(papers, cfg, overrides)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+    out.write_text(json.dumps(result, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
     print(f"\nWrote {out} ({out.stat().st_size / 1e6:.1f} MB, {len(result['papers'])} papers)")
     print("\nSubfields found, indented by level (rename any in scripts/cluster_names.json, then rerun):")
     for c in result["clusters"]:

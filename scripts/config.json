@@ -37,5 +37,6 @@
   "max_depth": 3,
   "min_split_size": 150,
   "max_children": 8,
-  "min_child_size": 20
+  "min_child_size": 20,
+  "forward_must_match": true
 }

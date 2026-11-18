@@ -69,7 +69,7 @@ class ADSClient:
         """Return up to max_n documents matching q."""
         path = self._cache_path("search", q, fl, sort, max_n)
         if path.exists():
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
         docs, start = [], 0
         while len(docs) < max_n:
             n = min(rows, max_n - len(docs))
@@ -84,7 +84,7 @@ class ADSClient:
             print(f"  fetched {len(docs)} of {min(total, max_n)}")
             if not batch or start >= total:
                 break
-        path.write_text(json.dumps(docs))
+        path.write_text(json.dumps(docs), encoding="utf-8")
         return docs
 
     def bigquery(self, bibcodes, fl=FIELDS):
@@ -94,7 +94,7 @@ class ADSClient:
             chunk = bibcodes[i:i + 1000]
             path = self._cache_path("bigquery", chunk, fl)
             if path.exists():
-                out.extend(json.loads(path.read_text()))
+                out.extend(json.loads(path.read_text(encoding="utf-8")))
                 continue
             data = self._request(
                 "POST", API + "/search/bigquery",
@@ -103,7 +103,7 @@ class ADSClient:
                 headers={"Content-Type": "big-query/csv"},
             )
             docs = data["response"]["docs"]
-            path.write_text(json.dumps(docs))
+            path.write_text(json.dumps(docs), encoding="utf-8")
             out.extend(docs)
             print(f"  fetched metadata for {min(i + 1000, len(bibcodes))} of {len(bibcodes)} bibcodes")
         return out
@@ -170,6 +170,11 @@ def collect(client, cfg):
 
     print("Forward citations ...")
     fq = f"citations({q}) AND collection:astronomy AND year:{cfg['year_min']}-{cfg['year_max']}"
+    if cfg.get("forward_must_match", True):
+        # keep only citing papers that are themselves on topic (stops big general surveys
+        # that merely cite an exoplanet paper from flooding the map)
+        topic = " OR ".join("(" + t + ")" for t in cfg["seed_queries"])
+        fq += f" AND ({topic})"
     for d in map(clean, client.search(fq, max_n=cfg["max_forward"])):
         if d:
             papers.setdefault(d["id"], d)
@@ -184,15 +189,17 @@ def collect(client, cfg):
 def build_graph(papers, drop_isolates):
     import networkx as nx
 
+    # Insert nodes and edges in sorted order so community detection gives the same
+    # result (and the same subfield ids) on every run, regardless of Python's hash seed.
     ids = {p["id"] for p in papers}
     g = nx.DiGraph()
-    g.add_nodes_from(ids)
-    for p in papers:
-        for r in p["refs"]:
+    g.add_nodes_from(sorted(ids))
+    for p in sorted(papers, key=lambda p: p["id"]):
+        for r in sorted(set(p["refs"])):
             if r in ids and r != p["id"]:
                 g.add_edge(p["id"], r)
     if drop_isolates:
-        g.remove_nodes_from([n for n in list(g) if g.degree(n) == 0])
+        g.remove_nodes_from(sorted(n for n in g if g.degree(n) == 0))
     return g
 
 
@@ -201,7 +208,11 @@ def _split(u, nodes, resolution, max_children, min_child_size):
     """Split a set of nodes into communities. Returns [(suffix, members)] or None if there is no real split."""
     import networkx as nx
 
-    comms = nx.community.louvain_communities(u.subgraph(nodes), resolution=resolution, seed=0)
+    # explicit copy in sorted order: subgraph views can iterate in set order, which varies between runs
+    sub = nx.Graph()
+    sub.add_nodes_from(sorted(nodes))
+    sub.add_edges_from(sorted(tuple(sorted(e)) for e in u.subgraph(nodes).edges))
+    comms = nx.community.louvain_communities(sub, resolution=resolution, seed=0)
     comms = sorted(comms, key=len, reverse=True)
     kept, other = [], set()
     for i, c in enumerate(comms):
@@ -337,7 +348,7 @@ def layout(g, leaf_of, index, x, tree):
         kids_of[info["parent"]].append(cid)
     size = collections.Counter()
     leaf_rows = collections.defaultdict(list)
-    for pid, leaf in leaf_of.items():
+    for pid, leaf in sorted(leaf_of.items()):
         leaf_rows[leaf].append(index[pid])
         for a in ancestors(leaf):
             size[a] += 1
@@ -469,7 +480,7 @@ def main(argv=None, client=None):
     ap.add_argument("--seeds-only", action="store_true", help="only run the seed query and print a preview")
     args = ap.parse_args(argv)
 
-    cfg = json.loads(Path(args.config).read_text())
+    cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
     if client is None:
         token = os.environ.get("ADS_API_TOKEN")
         if not token:
@@ -487,12 +498,12 @@ def main(argv=None, client=None):
     papers = collect(client, cfg)
     overrides = {}
     if Path(args.names).exists():
-        overrides = json.loads(Path(args.names).read_text())
+        overrides = json.loads(Path(args.names).read_text(encoding="utf-8"))
     result, members, names = build(papers, cfg, overrides)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+    out.write_text(json.dumps(result, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
     print(f"\nWrote {out} ({out.stat().st_size / 1e6:.1f} MB, {len(result['papers'])} papers)")
     print("\nSubfields found, indented by level (rename any in scripts/cluster_names.json, then rerun):")
     for c in result["clusters"]:
