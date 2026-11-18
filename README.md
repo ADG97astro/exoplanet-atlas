@@ -1,6 +1,6 @@
 # Exoplanet Atlas
 
-An interactive map of the exoplanet literature. Each dot is a paper: height is time, horizontal position groups papers by subfield, and dot size reflects citations. Search titles, filter by year, hide subfields, and click a paper to see its links to other papers in the atlas.
+An interactive 3D map of the exoplanet literature. Each dot is a paper: height is time, the horizontal plane groups papers by subfield into columns, and dot size reflects citations. Drag to rotate, scroll to zoom, right-drag to pan. Search titles, filter by year (or play the years), colour by subfield or year, toggle subfield names and slow rotation, and click a paper to see its links to other papers in the atlas.
 
 Live site: https://adg97astro.github.io/exoplanet-atlas/
 
@@ -23,6 +23,7 @@ Put one file at `data/papers.json`:
       "title": "Paper title",
       "year": 2018,
       "x": 0.31,
+      "z": 0.62,
       "cluster": "transit",
       "cites": 120,
       "refs": ["other-paper-id"],
@@ -32,10 +33,12 @@ Put one file at `data/papers.json`:
 }
 ```
 
-- `x` is a number from 0 to 1 (horizontal layout, precomputed from your citation graph or embeddings).
+- `x` and `z` are numbers from 0 to 1 (the horizontal layout, precomputed from your citation graph or embeddings). If `z` is missing, papers are placed at 0.5.
+- Optional: `"flag": true` and `"flagNote": "short reason"` mark papers for review. A "Highlight flagged papers" toggle appears when any paper has a flag.
 - `refs` lists ids of papers this one cites. Ids that are not in the file are ignored.
 - `url` must start with `https://`.
-- `year` is used for the vertical axis, so no separate y value is needed.
+- `year` (a whole number) sets the height, so no separate y value is needed.
+- The 3D library (three.js r128) loads from the cdnjs CDN, so visitors need an internet connection.
 
 ## Publish on GitHub Pages
 
