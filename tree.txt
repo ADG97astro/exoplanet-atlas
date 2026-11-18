@@ -1,0 +1,295 @@
+papers: 31110, file size: 11.1 MB
+c0  (4378)  tess, kepler, toi
+  c0.0  (980)  gaia, survey, tess
+    c0.0.0  (255)  gaia, data release, gaia data
+    c0.0.1  (214)  toi, python, zone planet
+    c0.0.2  (201)  ray, sn, variability
+    c0.0.3  (90)  tess, survey satellite, exoplanet survey
+    c0.0.4  (75)  cataclysmic, nova, superhump
+    c0.0.5  (61)  lamost, self lensing, sky area
+    c0.0.6  (61)  rotation periods, rotation, periods
+    c0.0.other  (23)  Other
+  c0.1  (843)  toi, tess, transiting
+    c0.1.0  (179)  toi, hot, evolved
+    c0.1.1  (169)  speculoos, validation, dwarf
+    c0.1.2  (168)  ngts, warm, transit
+    c0.1.3  (153)  neptune, tess keck, keck survey
+    c0.1.4  (110)  earth, dwarf, nearby
+    c0.1.5  (64)  hot jupiter, kepler, ttvs
+  c0.2  (837)  kepler, k2, transit
+    c0.2.0  (212)  learning, machine, machine learning
+    c0.2.1  (187)  k2, k2 mission, epic
+    c0.2.2  (179)  kepler, kepler mission, false
+    c0.2.3  (176)  transit timing, timing, ttvs
+    c0.2.4  (83)  companions, binary, stellar companions
+  c0.3  (645)  escape, mass loss, loss
+    c0.3.0  (162)  wind, escape, hydrogen
+    c0.3.1  (141)  helium, triplet, metastable
+    c0.3.2  (137)  hot, hot jupiter, jupiter
+    c0.3.3  (111)  ray, activity, xmm
+    c0.3.4  (94)  lyman, desert, neutral hydrogen
+  c0.4  (635)  planets, radius, neptunes
+    c0.4.0  (302)  loss, mass loss, valley
+    c0.4.1  (170)  systems, multiplanet, multiplanet systems
+    c0.4.2  (124)  occurrence, kepler, occurrence rates
+    c0.4.other  (39)  Other
+  c0.5  (285)  cheops, rocky, composition
+  c0.6  (153)  young, myr, v1298
+c1  (4135)  earth, life, habitable
+  c1.0  (767)  life, biosignatures, biosignature
+    c1.0.0  (167)  vegetation, photosynthetic, red edge
+    c1.0.1  (163)  transmission, earth like, spectra
+    c1.0.2  (154)  biosignature, photochemical, biosignatures
+    c1.0.3  (123)  oxygen, early, archean
+    c1.0.4  (116)  life, biosignature, origins space
+    c1.0.5  (44)  technosignatures, technosignature, civilization
+  c1.1  (659)  climate, habitable, circulation
+    c1.1.0  (168)  tidally locked, locked, tidally
+    c1.1.1  (134)  weathering, snowball, energy balance
+    c1.1.2  (96)  hz, habitable, habitable zone
+    c1.1.3  (90)  circulation, locked, atmospheric
+    c1.1.4  (79)  greenhouse, runaway greenhouse, water
+    c1.1.5  (58)  obliquity, high obliquity, spin
+    c1.1.other  (34)  Other
+  c1.2  (635)  starshade, mission, imaging
+    c1.2.0  (170)  habitable worlds, worlds observatory, habitable
+    c1.2.1  (134)  nulling, interferometer, interferometry
+    c1.2.2  (120)  starshade, occulter, starshades
+    c1.2.3  (104)  polarization, polarized, polarimetry
+    c1.2.4  (87)  surface, mapping, light curves
+    c1.2.other  (20)  Other
+  c1.3  (585)  uv, ultraviolet, radiation
+    c1.3.0  (161)  ultraviolet, uv, fuv
+    c1.3.1  (146)  life, origin life, origin
+    c1.3.2  (88)  mars, martian, early mars
+    c1.3.other  (72)  Other
+    c1.3.3  (59)  cosmic rays, cosmic, rays
+    c1.3.4  (59)  terrestrial, thermal, xuv
+  c1.4  (564)  mantle, core, super
+    c1.4.0  (175)  tectonics, plate, plate tectonics
+    c1.4.1  (139)  water, ice, mass radius
+    c1.4.2  (122)  earth core, melting, core
+    c1.4.3  (116)  composition, compositions, core
+    c1.4.other  (12)  Other
+  c1.5  (384)  magma, magma ocean, rocky
+  c1.6  (238)  tidal, europa, enceladus
+  c1.7  (206)  trappist, venus, trappist planets
+  c1.8  (61)  seti, technosignatures, radio
+  c1.other  (36)  Other
+c2  (4114)  transit, transiting, tidal
+  c2.0  (862)  extrasolar, ogle, tr
+    c2.0.0  (182)  dome, antarctica, antarctic
+    c2.0.1  (167)  tidal, hot, inflated
+    c2.0.2  (155)  superwasp, transits, hd 209458
+    c2.0.3  (109)  cluster, ngc, clusters
+    c2.0.4  (105)  tres, xo, transit
+    c2.0.5  (85)  ogle, ogle tr, tr
+    c2.0.6  (49)  kepler, koi, sophie
+    c2.0.other  (10)  Other
+  c2.1  (787)  spin, spin orbit, orbit
+    c2.1.0  (184)  rossiter, rossiter mclaughlin, mclaughlin
+    c2.1.1  (163)  jupiters, hot jupiters, hot
+    c2.1.2  (157)  kozai, secular, binary
+    c2.1.3  (136)  obliquity, aligned, toi
+    c2.1.4  (78)  misalignment, spin, spin orbit
+    c2.1.5  (69)  clusters, cluster, star clusters
+  c2.2  (768)  timing, transit, transit timing
+    c2.2.0  (209)  timing, transit timing, planets
+    c2.2.1  (191)  hat, exoplanet transit, qatar
+    c2.2.2  (165)  decay, tidal, orbital decay
+    c2.2.3  (112)  tres, darkening, tres 3b
+    c2.2.4  (88)  physical properties, transiting extrasolar, physical
+    c2.2.other  (3)  Other
+  c2.3  (410)  wasp, sub, transiting
+    c2.3.0  (172)  wasp, jup, sub jup
+    c2.3.1  (74)  hat, hatnet, california
+    c2.3.2  (66)  hats, hatsouth, anu
+    c2.3.3  (63)  eclipsing, eclipsing binaries, low mass
+    c2.3.other  (35)  Other
+  c2.4  (387)  eclipsing, binary, binaries
+  c2.5  (348)  exomoons, moons, exomoon
+  c2.6  (228)  corot, corot space, space mission
+  c2.7  (159)  kelt, jupiter transiting, beaming
+  c2.8  (151)  tidal, dissipation, tidal dissipation
+  c2.other  (14)  Other
+c3  (3920)  radial, radial velocity, velocity
+  c3.0  (950)  extrasolar, planets, systems
+    c3.0.0  (247)  extrasolar planets, extrasolar, 51
+    c3.0.1  (139)  876, resonance, gj
+    c3.0.2  (120)  binary, exoplanet host, binaries
+    c3.0.3  (119)  stability, trojan, habitable
+    c3.0.4  (110)  hd, anglo, anglo australian
+    c3.0.5  (87)  hipparcos, extrasolar planets, extrasolar
+    c3.0.6  (68)  titius, titius bode, bode
+    c3.0.other  (60)  Other
+  c3.1  (823)  activity, rv, radial velocity
+    c3.1.0  (182)  spectrograph, comb, espresso
+    c3.1.1  (169)  signals, stellar activity, activity
+    c3.1.2  (154)  neid, extreme precision, expres
+    c3.1.3  (137)  solar, magnetic, sun
+    c3.1.4  (116)  spirou, near infrared, infrared
+    c3.1.5  (65)  activity, cycles, activity cycles
+  c3.2  (792)  abundances, fe, abundance
+    c3.2.0  (212)  lines, lte, atomic
+    c3.2.1  (206)  planets, extrasolar, host stars
+    c3.2.2  (121)  lithium, li, solar twins
+    c3.2.3  (116)  galactic, milky, milky way
+    c3.2.4  (77)  apogee, sdss, apache point
+    c3.2.5  (60)  library, eff, eff sub
+  c3.3  (558)  astrometric, astrometry, gaia
+    c3.3.0  (110)  rv, occurrence, apf
+    c3.3.1  (104)  hipparcos, hd, sophie
+    c3.3.2  (101)  astrometric, astrometry, neat
+    c3.3.3  (94)  gaia, astrometric, gaia data
+    c3.3.4  (82)  exoplanet host, stellar companions, multiplicity
+    c3.3.5  (67)  astrometry, prima, differential astrometry
+  c3.4  (386)  radial, radial velocity, hd
+  c3.5  (288)  carmenes, dwarfs, carmenes search
+  c3.6  (108)  chara, interferometry, chara array
+  c3.other  (15)  Other
+c4  (3893)  imaging, contrast, high contrast
+  c4.0  (972)  coronagraph, wavefront, contrast
+    c4.0.0  (190)  apodization, pupil, piaa
+    c4.0.1  (186)  coronagraph instrument, roman, wfirst
+    c4.0.2  (166)  aberrations, self coherent, coherent camera
+    c4.0.3  (92)  vortex, vortex coronagraph, phase mask
+    c4.0.4  (86)  spices, dark hole, speckle
+    c4.0.5  (79)  fiber, mode, single mode
+    c4.0.6  (78)  segmented, luvoir, segment
+    c4.0.other  (52)  Other
+    c4.0.7  (43)  fresnel, imager, extrasolar
+  c4.1  (735)  sphere, imaging, adaptive optics
+    c4.1.0  (171)  processing, imaging, adi
+    c4.1.1  (166)  adaptive optics, adaptive, optics
+    c4.1.2  (142)  sphere, vlt, vlt sphere
+    c4.1.3  (117)  pds, hα, pds 70
+    c4.1.4  (92)  speckle, mkid, speckles
+    c4.1.other  (47)  Other
+  c4.2  (687)  dwarfs, brown, brown dwarfs
+    c4.2.0  (184)  stars, mass stars, low mass
+    c4.2.1  (137)  ultracool, dwarfs, dwarf
+    c4.2.2  (125)  sky, survey, sky survey
+    c4.2.3  (94)  variability, cloud, brown
+    c4.2.4  (75)  brown, brown dwarfs, 229b
+    c4.2.5  (72)  young, low gravity, gravity
+  c4.3  (499)  young, moving, members
+    c4.3.0  (136)  pictoris, direct, planet
+    c4.3.1  (136)  integral field, integral, field spectrograph
+    c4.3.2  (106)  moving, members, groups
+    c4.3.3  (84)  imaging surveys, surveys, nici
+    c4.3.other  (37)  Other
+  c4.4  (477)  debris, dust, debris disks
+    c4.4.0  (101)  pictoris, circumstellar, beta pictoris
+    c4.4.1  (98)  debris, debris disks, μm
+    c4.4.2  (66)  exozodiacal, exozodiacal dust, exozodi
+    c4.4.3  (56)  gemini planet, planet imager, gemini
+    c4.4.4  (54)  fomalhaut, eri, eridani
+    c4.4.5  (52)  resonant, debris disks, debris
+    c4.4.other  (50)  Other
+  c4.5  (380)  jwst, imaged, directly imaged
+  c4.6  (133)  nulling, interferometry, nulling interferometry
+  c4.other  (10)  Other
+c5  (3749)  atmospheres, transmission, atmosphere
+  c5.0  (890)  jwst, line lists, lists
+    c5.0.0  (246)  jwst, niriss, nirspec
+    c5.0.1  (224)  line lists, line, lists
+    c5.0.2  (159)  brown, brown dwarfs, dwarfs
+    c5.0.3  (131)  sub neptune, neptune, k2
+    c5.0.4  (130)  retrievals, wasp, wasp 39b
+  c5.1  (626)  eclipse, spitzer, secondary eclipse
+    c5.1.0  (176)  albedo, reflected, reflected light
+    c5.1.1  (140)  extrasolar, 209458b, hd 209458b
+    c5.1.2  (117)  wasp, thermal, emission
+    c5.1.3  (105)  spitzer, irac, eclipses
+    c5.1.4  (63)  polarization, polarimetry, polarized
+    c5.1.other  (25)  Other
+  c5.2  (575)  transmission, transmission spectrum, spectrum
+    c5.2.0  (170)  wfc3, hubble, space telescope
+    c5.2.1  (124)  sodium, hd 209458b, 209458b
+    c5.2.2  (110)  stellar, hd 189733b, 189733b
+    c5.2.3  (108)  transmission spectroscopy, optical transmission, transmission spectrum
+    c5.2.4  (63)  gj, gj 1214b, 1214b
+  c5.3  (527)  circulation, hot, hot jupiters
+    c5.3.0  (161)  circulation, atmospheric circulation, flow
+    c5.3.1  (156)  phase curve, phase curves, phase
+    c5.3.2  (139)  cloud, chemistry, 3d
+    c5.3.3  (71)  ohmic, magnetic, ohmic dissipation
+  c5.4  (523)  high resolution, resolution, ultra hot
+    c5.4.0  (172)  crires, resolution spectroscopy, high resolution
+    c5.4.1  (130)  kelt, kelt 9b, ultra hot
+    c5.4.2  (111)  wasp, 121b, wasp 121b
+    c5.4.3  (110)  sodium, na, transmission
+  c5.5  (420)  ariel, echo, chemical
+    c5.5.0  (124)  chemistry, chemical, disequilibrium
+    c5.5.1  (106)  echo, sofia, characterisation observatory
+    c5.5.2  (80)  retrieval, learning, machine
+    c5.5.3  (69)  ariel, ariel mission, mission
+    c5.5.4  (41)  galileo probe, saturn, galileo
+  c5.6  (188)  haze, particles, titan
+c6  (2949)  disk, disks, protoplanetary
+  c6.0  (547)  belt, terrestrial, bodies
+    c6.0.0  (129)  asteroid, asteroids, asteroid belt
+    c6.0.1  (123)  terrestrial, growth, terrestrial planets
+    c6.0.2  (94)  kuiper belt, kuiper, belt
+    c6.0.3  (80)  symplectic, eccentricities, planetary systems
+    c6.0.4  (69)  collisions, impact, giant impact
+    c6.0.other  (52)  Other
+  c6.1  (438)  tauri, tauri stars, stars
+    c6.1.0  (111)  accretion, tauri, tauri stars
+    c6.1.1  (86)  dust, grain, disks
+    c6.1.2  (81)  herbig, herbig ae, ae
+    c6.1.3  (71)  lupus, myr, upper scorpius
+    c6.1.4  (46)  taurus, binary, taurus auriga
+    c6.1.5  (43)  photoevaporation, dispersal, disc
+  c6.2  (400)  resonant, resonances, migration
+    c6.2.0  (92)  extrasolar planetary, resonance, extrasolar
+    c6.2.1  (92)  torque, migration, embedded
+    c6.2.2  (79)  super earths, earths, super
+    c6.2.3  (72)  resonant, chains, pairs
+    c6.2.4  (52)  stability, planet systems, hill
+    c6.2.other  (13)  Other
+  c6.3  (364)  alma, dust, gaps
+  c6.4  (359)  pebble, pebble accretion, growth
+  c6.5  (335)  accretion, gas accretion, migration
+  c6.6  (259)  fragmentation, instability, discs
+  c6.7  (247)  molecules, chemical, interstellar
+c7  (1670)  white, white dwarfs, white dwarf
+  c7.0  (517)  scuti, pulsation, tess
+    c7.0.0  (94)  eclipsing, binary, cephei
+    c7.0.1  (89)  scuti, sct, scuti stars
+    c7.0.2  (79)  massive stars, massive, supergiants
+    c7.0.other  (79)  Other
+    c7.0.3  (69)  mesa, modules experiments, experiments stellar
+    c7.0.4  (56)  modes, period spacing, mode
+    c7.0.5  (51)  hgmn, ap, roap
+  c7.1  (500)  white, white dwarfs, white dwarf
+    c7.1.0  (136)  mass loss, branch, giant branch
+    c7.1.1  (117)  da, white, white dwarfs
+    c7.1.2  (86)  polluted, polluted white, material
+    c7.1.3  (71)  wd 1856, 1856, wd
+    c7.1.4  (68)  debris, white, asteroid
+    c7.1.other  (22)  Other
+  c7.2  (470)  asteroseismology, asteroseismic, oscillations
+    c7.2.0  (182)  models, isochrones, stellar evolution
+    c7.2.1  (117)  red, red giants, red giant
+    c7.2.2  (85)  asteroseismic, red, red giants
+    c7.2.3  (58)  granulation, flicker, plato
+    c7.2.other  (28)  Other
+  c7.3  (114)  subdwarf, sdb, subdwarf stars
+  c7.4  (69)  rotation, rotation periods, age
+c8  (1330)  magnetic, radio, flares
+  c8.0  (374)  flare, flares, cmes
+  c8.1  (322)  radio, radio emission, emission
+  c8.2  (317)  magnetic, rotation, stars
+  c8.3  (243)  interaction, star planet, interactions
+  c8.other  (74)  Other
+c9  (754)  microlensing, lens, blg
+  c9.0  (186)  microlensing, extrasolar planets, gravitational microlensing
+  c9.1  (126)  blg, kmt, kmtnet
+  c9.2  (112)  free floating, floating, roman
+  c9.3  (110)  lensing, macho, gravitational microlensing
+  c9.4  (96)  blg, moa, lens
+  c9.5  (79)  transient, universe, dark
+  c9.6  (41)  solar gravitational, gravitational lens, sgl
+  c9.other  (4)  Other
+other  (218)  Other

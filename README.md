@@ -100,3 +100,15 @@ The build finds nested subfields by running community detection recursively: fir
 Names come from the words that most distinguish a subfield from its parent. To rename one, add its id to `scripts/cluster_names.json`, for example `{"c0": "Detection methods", "c0.1": "Radial velocity"}`, and rerun.
 
 The viewer opens on the broad overview: top-level subfields only, list collapsed. Sub-subfields appear only when you ask for them: click a subfield's name on the map to look inside it, use the arrows in the Subfields list to expand it, or choose a finer **Detail level**. In the list, click a name to hide or show it (with everything inside), and "only" to isolate it. **Overview** goes back to the starting view.
+
+## Coverage: most cited vs all
+
+`scripts/config.json` now fetches all exoplanet papers in ADS (about 50,000), using a broad query (exoplanet, extrasolar planet, hot Jupiter, transiting planet, planet candidate, super-Earth, sub-Neptune) in year slices, plus the background papers they cite most. The viewer's **Papers** control has two tabs. **Most cited** shows the top-cited share of each publication year's papers, set with a 1 to 100% slider, so recent work is included at every setting; big maps open here at roughly 6,000 papers. **All papers** shows everything.
+
+The earlier, smaller setup (about 5,000 papers) is kept as `scripts/config_small.json`:
+
+```bash
+python scripts/build_atlas.py --config scripts/config_small.json
+```
+
+The full build makes many more ADS requests the first time (expect 20 to 60 minutes) and needs a few GB of memory for the clustering; reruns use the cache.

@@ -145,10 +145,11 @@ def fetch_seeds(client, cfg):
     per = cfg.get("max_seeds_per_slice", cfg["max_seeds"])
     seeds = {}
     for lo, hi in slices:
-        print(f"  years {lo}-{hi}")
+        before = len(seeds)
         for d in map(clean, client.search(seed_query(cfg, lo, hi), max_n=per)):
             if d:
                 seeds.setdefault(d["id"], d)
+        print(f"  years {lo}-{hi}: {len(seeds) - before} papers")
     return list(seeds.values())
 
 
@@ -161,13 +162,20 @@ def collect(client, cfg):
 
     print("Backward references ...")
     support = collections.Counter(r for p in seeds for r in p["refs"] if r not in papers)
-    wanted = [b for b, c in support.items() if c >= cfg["min_seed_support"]]
+    wanted = [b for b, c in support.most_common() if c >= cfg["min_seed_support"]]
     print(f"  {len(wanted)} papers cited by >= {cfg['min_seed_support']} seeds")
+    cap = cfg.get("max_backward_fetch", 3 * cfg["max_backward"])
+    if len(wanted) > cap:
+        wanted = wanted[:cap]
+        print(f"  fetching the {cap} cited by the most seeds")
     back = [d for d in map(clean, client.bigquery(wanted)) if d and d["year"] >= cfg["backward_year_min"]]
     back.sort(key=lambda d: -d["cites"])
     for d in back[: cfg["max_backward"]]:
         papers.setdefault(d["id"], d)
 
+    if cfg.get("max_forward", 0) <= 0:
+        print(f"Total papers collected: {len(papers)}")
+        return list(papers.values())
     print("Forward citations ...")
     fq = f"citations({q}) AND collection:astronomy AND year:{cfg['year_min']}-{cfg['year_max']}"
     if cfg.get("forward_must_match", True):
@@ -452,9 +460,10 @@ def build(papers, cfg, overrides=None):
             "z": round(min(1.0, max(0.0, float(xy[i][1]) + jz)), 4),
             "cluster": leaf_of[p["id"]],
             "cites": p["cites"],
-            "refs": [r for r in p["refs"] if r in index],
-            "url": p.get("url") or "https://ui.adsabs.harvard.edu/abs/" + quote(p["id"], safe="") + "/abstract",
+            "refs": sorted({index[r] for r in p["refs"] if r in index})[: cfg.get("max_refs_stored", 100)],
         })
+        if p.get("url"):
+            out_papers[-1]["url"] = p["url"]
 
     kids_of = collections.defaultdict(list)
     for cid, info in tree.items():
@@ -472,6 +481,9 @@ def build(papers, cfg, overrides=None):
         "source": cfg.get("source", "NASA ADS"),
         "papers": len(out_papers),
         "seed_queries": cfg["seed_queries"],
+        "format": 2,
+        "refs": "indices into papers",
+        "default_url": "https://ui.adsabs.harvard.edu/abs/{id}/abstract",
     }
     return {"meta": meta, "clusters": clusters, "papers": out_papers}, rows_of, names
 

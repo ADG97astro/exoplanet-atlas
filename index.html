@@ -91,6 +91,14 @@
   .small-btn:hover { border-color: var(--mute); }
   .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
   .head .field-title { margin: 0; }
+  .tabs { display: flex; gap: 2px; padding: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .tab { flex: 1; padding: 6px 8px; font: inherit; font-size: 14px; color: var(--mute); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); background: var(--panel); font-weight: 600; box-shadow: 0 0 0 1px var(--line); }
+  #topPanel { margin-top: 10px; }
+  #topPanel[hidden] { display: none; }
+  label.sub { display: block; font-size: 14px; margin-bottom: 4px; }
+  #topCount { margin-top: 6px; }
   #yearbar { height: 8px; border-radius: 4px; margin: 8px 6px 2px; }
   #yearbar[hidden], #yearbarLabels[hidden] { display: none; }
   #yearbarLabels { display: flex; justify-content: space-between; margin: 0 6px; font-size: 12px; color: var(--mute); }
@@ -165,6 +173,19 @@
       </div>
     </div>
 
+    <div id="topBox">
+      <div class="field-title">Papers</div>
+      <div class="tabs" role="tablist" aria-label="Which papers to show">
+        <button type="button" role="tab" class="tab" id="tabTop" aria-selected="true" aria-controls="topPanel">Most cited</button>
+        <button type="button" role="tab" class="tab" id="tabAll" aria-selected="false">All papers</button>
+      </div>
+      <div id="topPanel">
+        <label class="sub" for="topPct">Top <span id="topPctLabel">12</span>% of each year's papers</label>
+        <input id="topPct" type="range" min="1" max="100" step="1" value="12">
+      </div>
+      <div id="topCount" class="hint" style="font-size:13px"></div>
+    </div>
+
     <fieldset id="levelBox" hidden>
       <legend class="field-title">Detail level</legend>
       <div class="row" id="levels"></div>
@@ -229,7 +250,8 @@
   let papers = [], clusters = [], byId = new Map(), citedBy = new Map();
   let cmap = new Map(), roots = [], maxDepth = 1, level = 1;
   let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, span = 1;
-  let query = "", colorMode = "cluster", hasFlags = false;
+  let query = "", colorMode = "cluster", hasFlags = false, topPct = 12, paperMode = "top";
+  const TOP_TARGET = 6000; // default view for big maps: roughly this many papers
   let hidden = new Set(), expanded = new Set(), selected = null, hover = null, focus = null;
   let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [];
   let cam = { theta: HOME.theta, phi: HOME.phi, radius: HOME.radius, target: new THREE.Vector3() };
@@ -312,7 +334,7 @@
         z: Math.min(0.99, Math.max(0.01, lf.cz + gauss() * lf.sd)),
         cluster: lf.id,
         cites: Math.floor(Math.exp(gauss() * 1.2 + 2) * (2027 - year) / 10),
-        flag: rnd() < 0.02, refs: []
+        flag: rnd() < 0.02, refs: [], url: null
       });
     }
     const byLeaf = {};
@@ -330,6 +352,39 @@
     return new THREE.Color(YEAR_STOPS[i]).lerp(new THREE.Color(YEAR_STOPS[i + 1]), f - i);
   }
   const yWorld = (t) => ((t - yearMin) / span) * HEIGHT - HEIGHT / 2;
+
+  // ---------- most cited, ranked within each publication year so recent work is not crowded out ----------
+  const yearSizes = new Map();
+  function markTop() {
+    const byYearMap = new Map();
+    papers.forEach((p) => { if (!byYearMap.has(p.year)) byYearMap.set(p.year, []); byYearMap.get(p.year).push(p); });
+    byYearMap.forEach((list, y) => {
+      list.sort((a, b) => (b.cites || 0) - (a.cites || 0));
+      list.forEach((p, i) => { p._yi = i; });
+      yearSizes.set(y, list.length);
+    });
+    const big = papers.length > TOP_TARGET * 1.2;
+    topPct = big ? Math.max(1, Math.min(100, Math.round((100 * TOP_TARGET) / papers.length))) : 25;
+    $("#topPct").value = topPct;
+    setPaperMode(big ? "top" : "all", false);
+  }
+  const effPct = () => (paperMode === "all" ? 100 : topPct);
+  const topK = (year) => Math.ceil((yearSizes.get(year) || 0) * effPct() / 100);
+  function updateTopLabel() {
+    let n = 0;
+    const pct = effPct();
+    yearSizes.forEach((len) => { n += Math.ceil(len * pct / 100); });
+    $("#topPctLabel").textContent = topPct;
+    $("#topCount").textContent = pct >= 100 ? "All " + papers.length.toLocaleString() + " papers" : n.toLocaleString() + " of " + papers.length.toLocaleString() + " papers";
+  }
+  function setPaperMode(m, redraw = true) {
+    paperMode = m;
+    $("#tabTop").setAttribute("aria-selected", String(m === "top"));
+    $("#tabAll").setAttribute("aria-selected", String(m === "all"));
+    $("#topPanel").hidden = m !== "top";
+    updateTopLabel();
+    if (redraw) refresh();
+  }
 
   // ---------- cluster tree ----------
   function buildTree() {
@@ -376,6 +431,9 @@
     clusters = data.clusters || [];
     papers = data.papers || [];
     if (!papers.length) { fail("No papers found in data/papers.json."); return; }
+    papers.forEach((p) => {
+      p.refs = (p.refs || []).map((r) => (typeof r === "number" ? (papers[r] && papers[r].id) : r)).filter(Boolean);
+    });
     byId = new Map(papers.map((p) => [p.id, p]));
     citedBy = new Map();
     yearMin = Infinity; yearMax = -Infinity;
@@ -396,6 +454,7 @@
       (p.refs || []).forEach((r) => { if (!citedBy.has(r)) citedBy.set(r, []); citedBy.get(r).push(p.id); });
     });
 
+    markTop();
     buildTree();
     buildPoints();
     buildGrid();
@@ -498,7 +557,7 @@
     let shown = 0;
     for (let i = 0; i < N; i++) {
       const p = papers[i];
-      let off = p.year > yearCap;
+      let off = p.year > yearCap || (effPct() < 100 && p._yi >= topK(p.year));
       if (!off && hidden.size) for (const id of p._path) if (hidden.has(id)) { off = true; break; }
       const vis = !off;
       const m = !query || p._lc.includes(query);
@@ -702,6 +761,16 @@
   }));
   $("#names").addEventListener("change", () => { dirty = true; });
   $("#flags").addEventListener("change", refresh);
+  $("#topPct").addEventListener("input", (e) => { topPct = +e.target.value; updateTopLabel(); refresh(); });
+  $("#tabTop").onclick = () => setPaperMode("top");
+  $("#tabAll").onclick = () => setPaperMode("all");
+  $(".tabs").addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const next = paperMode === "top" ? "all" : "top";
+    setPaperMode(next);
+    $(next === "top" ? "#tabTop" : "#tabAll").focus();
+    e.preventDefault();
+  });
   function goOverview() { hidden = new Set(); expanded = new Set(); focus = null; setLevel(1); buildLegend(); refresh(); renderCrumbs(); }
   function goBack() {
     const c = focus && cmap.get(focus);
@@ -854,9 +923,10 @@
     row("Cited here", (citedBy.get(p.id) || []).length);
     if (p.flag) row("Flag", p.flagNote || "Flagged for review");
     box.append(h2, dl);
-    if (typeof p.url === "string" && p.url.startsWith("https://")) {
+    const url = typeof p.url === "string" ? p.url : (p.url === null ? "" : "https://ui.adsabs.harvard.edu/abs/" + encodeURIComponent(p.id) + "/abstract");
+    if (url.startsWith("https://")) {
       const a = document.createElement("a");
-      a.href = p.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
       a.textContent = "Open paper"; a.style.display = "inline-block"; a.style.marginTop = "8px";
       box.append(a);
     }

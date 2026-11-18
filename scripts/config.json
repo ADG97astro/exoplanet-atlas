@@ -1,6 +1,6 @@
 {
   "seed_queries": [
-    "abs:(\"exoplanet\" OR \"exoplanets\" OR \"exoplanetary\" OR \"extrasolar planet\" OR \"extrasolar planets\")"
+    "abs:(\"exoplanet\" OR \"exoplanets\" OR \"exoplanetary\" OR \"extrasolar planet\" OR \"extrasolar planets\" OR \"hot Jupiter\" OR \"hot Jupiters\" OR \"transiting planet\" OR \"transiting planets\" OR \"planet candidate\" OR \"planet candidates\" OR \"super-Earth\" OR \"super-Earths\" OR \"sub-Neptune\" OR \"sub-Neptunes\")"
   ],
   "year_min": 1995,
   "year_max": 2026,
@@ -16,28 +16,65 @@
     ],
     [
       2010,
+      2012
+    ],
+    [
+      2013,
       2014
     ],
     [
       2015,
+      2016
+    ],
+    [
+      2017,
+      2018
+    ],
+    [
+      2019,
       2019
     ],
     [
       2020,
+      2020
+    ],
+    [
+      2021,
+      2021
+    ],
+    [
+      2022,
+      2022
+    ],
+    [
+      2023,
+      2023
+    ],
+    [
+      2024,
+      2024
+    ],
+    [
+      2025,
+      2025
+    ],
+    [
+      2026,
       2026
     ]
   ],
-  "max_seeds_per_slice": 500,
-  "max_seeds": 2500,
-  "min_seed_support": 3,
-  "max_backward": 2500,
-  "max_forward": 2000,
+  "max_seeds_per_slice": 20000,
+  "max_seeds": 20000,
+  "min_seed_support": 5,
+  "max_backward": 5000,
+  "max_backward_fetch": 15000,
+  "max_forward": 0,
   "drop_isolates": true,
   "resolution": 1.0,
   "max_depth": 3,
-  "min_split_size": 150,
-  "max_children": 8,
-  "min_child_size": 20,
-  "forward_must_match": true,
-  "layout_compress": 0.5
+  "min_split_size": 400,
+  "max_children": 10,
+  "min_child_size": 40,
+  "layout_compress": 0.5,
+  "max_refs_stored": 100
 }
