@@ -112,3 +112,13 @@ python scripts/build_atlas.py --config scripts/config_small.json
 ```
 
 The full build makes many more ADS requests the first time (expect 20 to 60 minutes) and needs a few GB of memory for the clustering; reruns use the cache.
+
+## About panel (subfield stats)
+
+The sidebar's **About** panel describes whatever you are looking at: the whole field, or the subfield you clicked into. It shows papers per year, the most-cited papers (click one to open it), the subfields it is most connected to through citations (click to go there), the most frequent authors and, for the top two levels, the leading first-author institutions. Author names are matched by surname and initials and institutions are parsed from affiliations, so both are approximate.
+
+Authors and institutions come from ADS and are added at the end of a full build. To add them to an existing `data/papers.json` without re-clustering:
+
+```bash
+python scripts/build_atlas.py --people-only
+```

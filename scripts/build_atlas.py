@@ -417,6 +417,90 @@ def layout(g, leaf_of, index, x, tree, compress=0.5):
     return xy, size
 
 
+# --------------------------------------------------------------------------
+# People: leading authors and (approximate) institutions per subfield
+# --------------------------------------------------------------------------
+import re
+
+_INST = re.compile(r"(Universi|Institut|Observator|Laborator|Cent(er|re)\b|Max[- ]Planck|NASA|\bESO\b|European Southern|"
+                   r"Caltech|California Institute|Jet Propulsion|CNRS|Harvard|Smithsonian|Carnegie|Academ|School|College|"
+                   r"Agency|Space Telescope|Kavli|Flatiron|\bINAF\b|\bCSIC\b|\bIAC\b|MPIA)", re.I)
+
+
+def norm_author(name):
+    """'Winn, Joshua N.' and 'Winn, J. N.' both become 'Winn, J. N.' (approximate: different people can share this)."""
+    name = (name or "").strip()
+    if not name:
+        return None
+    if "," in name:
+        last, given = name.split(",", 1)
+    else:
+        parts = name.split()
+        last, given = parts[-1], " ".join(parts[:-1])
+    inits = []
+    for tok in re.split(r"[\s.]+", given.strip()):
+        for sub in tok.split("-"):
+            if sub and sub[0].isalpha():
+                inits.append(sub[0].upper() + ".")
+    last = last.strip()
+    return (last + ", " + " ".join(inits)) if inits else last
+
+
+def norm_inst(aff):
+    """Pick the institution-like part of a raw affiliation string (approximate)."""
+    if not aff or aff.strip() in ("-", ""):
+        return None
+    for part in aff.split(";"):  # an author can list several affiliations
+        for seg in part.split(","):
+            seg = re.sub(r"\s+", " ", seg).strip()
+            if _INST.search(seg) and 3 < len(seg) < 90:
+                return seg
+    return None
+
+
+def add_people(result, client, cfg):
+    """Fetch authors and affiliations for every paper in the map and add per-subfield top lists."""
+    ids = [p["id"] for p in result["papers"]]
+    print(f"Authors and affiliations for {len(ids)} papers ...")
+    docs = client.bigquery(ids, fl="bibcode,author,aff")
+    people = {}
+    for d in docs:
+        authors = (d.get("author") or [])[: cfg.get("max_authors_per_paper", 50)]
+        affs = d.get("aff") or []
+        names = {n for n in (norm_author(a) for a in authors) if n}
+        inst = norm_inst(affs[0]) if affs else None
+        people[d.get("bibcode")] = (names, inst)
+
+    a_count = collections.defaultdict(collections.Counter)
+    i_count = collections.defaultdict(collections.Counter)
+    for p in result["papers"]:
+        names, inst = people.get(p["id"], (set(), None))
+        parts = p["cluster"].split(".")
+        keys = [None] + [".".join(parts[: k + 1]) for k in range(len(parts))]
+        for key in keys:
+            a_count[key].update(names)
+            if inst:
+                i_count[key][inst] += 1
+
+    def top(counter, n):
+        return [[k, v] for k, v in sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))[:n]]
+
+    n_auth = cfg.get("top_authors", 8)
+    n_inst = cfg.get("top_institutions", 6)
+    for c in result["clusters"]:
+        c["authors"] = top(a_count[c["id"]], n_auth)
+        if c["depth"] <= 2:
+            c["institutions"] = top(i_count[c["id"]], n_inst)
+    result["meta"]["authors"] = top(a_count[None], n_auth)
+    result["meta"]["institutions"] = top(i_count[None], n_inst)
+    result["meta"]["people_note"] = ("Author names are matched by surname and initials, and institutions are parsed "
+                                     "from first-author affiliations, so both are approximate.")
+    print(f"  got author lists for {len(people)} papers")
+
+
+# --------------------------------------------------------------------------
+# Output
+# --------------------------------------------------------------------------
 def jitter(pid, amount):
     h = hashlib.md5(pid.encode()).digest()
     return ((h[0] / 255) - 0.5) * amount, ((h[1] / 255) - 0.5) * amount
@@ -497,6 +581,8 @@ def main(argv=None, client=None):
     ap.add_argument("--out", default=str(here.parent / "data" / "papers.json"))
     ap.add_argument("--cache", default=str(here.parent / "data" / "raw"))
     ap.add_argument("--seeds-only", action="store_true", help="only run the seed query and print a preview")
+    ap.add_argument("--people-only", action="store_true",
+                    help="add authors and institutions to the existing data/papers.json without re-clustering")
     args = ap.parse_args(argv)
 
     cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
@@ -505,6 +591,14 @@ def main(argv=None, client=None):
         if not token:
             sys.exit("Set your ADS token first:  export ADS_API_TOKEN='...'  (get one at ui.adsabs.harvard.edu)")
         client = ADSClient(token, args.cache)
+
+    if args.people_only:
+        out = Path(args.out)
+        result = json.loads(out.read_text(encoding="utf-8"))
+        add_people(result, client, cfg)
+        out.write_text(json.dumps(result, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+        print(f"Updated {out} ({out.stat().st_size / 1e6:.1f} MB)")
+        return 0
 
     if args.seeds_only:
         docs = fetch_seeds(client, cfg)
@@ -519,6 +613,8 @@ def main(argv=None, client=None):
     if Path(args.names).exists():
         overrides = json.loads(Path(args.names).read_text(encoding="utf-8"))
     result, members, names = build(papers, cfg, overrides)
+    if cfg.get("people", True):
+        add_people(result, client, cfg)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -117,6 +117,20 @@
   .only { flex: none; padding: 2px 6px; font: inherit; font-size: 12px; color: var(--mute); background: none; border: 0; border-radius: 6px; cursor: pointer; opacity: 0.55; }
   .only:hover, .only:focus-visible { opacity: 1; color: var(--ink); background: var(--bg); }
 
+  #aboutBox { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--bg); }
+  #aboutBox summary { cursor: pointer; font: 600 17px/1.3 var(--serif); }
+  #aboutBox summary::marker { color: var(--mute); }
+  #about .crumbline { color: var(--mute); font-size: 13px; margin: 2px 0 6px; }
+  #about .count { font-size: 14px; margin: 0 0 6px; }
+  #about h3 { font-size: 13px; font-weight: 600; color: var(--mute); margin: 12px 0 4px; }
+  #about svg { display: block; width: 100%; height: auto; }
+  #about ol, #about ul { margin: 0; padding-left: 20px; font-size: 13.5px; }
+  #about li { margin: 2px 0; }
+  #about .linkish { padding: 0; font: inherit; color: var(--ink); background: none; border: 0; text-align: left; cursor: pointer; }
+  #about .linkish:hover { text-decoration: underline; }
+  #about .yr { color: var(--mute); font-size: 12px; }
+  #about .people { font-size: 13.5px; margin: 0; }
+  #about .note { color: var(--mute); font-size: 12px; margin: 8px 0 0; }
   #detail { border-top: 1px solid var(--line); padding-top: 14px; }
   #detail h2 { margin: 0 0 6px; font: 600 17px/1.25 var(--serif); }
   #detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--mute); font-size: 14px; }
@@ -162,6 +176,11 @@
       <label class="t" for="q">Search titles</label>
       <input id="q" type="search" placeholder="e.g. transit, retrieval, TESS" autocomplete="off">
     </div>
+
+    <details id="aboutBox" open>
+      <summary id="aboutSummary">About</summary>
+      <div id="about"></div>
+    </details>
 
     <div>
       <label class="t" for="year">Show papers up to <span id="yearLabel"></span></label>
@@ -247,7 +266,7 @@
   const HOME = { theta: 0.65, phi: 1.2, radius: 4.8 };
 
   // ---------- state ----------
-  let papers = [], clusters = [], byId = new Map(), citedBy = new Map();
+  let papers = [], clusters = [], byId = new Map(), citedBy = new Map(), meta = {};
   let cmap = new Map(), roots = [], maxDepth = 1, level = 1;
   let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, span = 1;
   let query = "", colorMode = "cluster", hasFlags = false, topPct = 12, paperMode = "top";
@@ -389,7 +408,7 @@
   // ---------- cluster tree ----------
   function buildTree() {
     cmap = new Map();
-    clusters.forEach((c) => cmap.set(c.id, { id: c.id, name: c.name || String(c.id), parent: c.parent || null, children: [], n: 0, depth: 1 }));
+    clusters.forEach((c) => cmap.set(c.id, { id: c.id, name: c.name || String(c.id), parent: c.parent || null, children: [], n: 0, depth: 1, authors: c.authors || null, institutions: c.institutions || null }));
     papers.forEach((p) => { if (!cmap.has(p.cluster)) cmap.set(p.cluster, { id: p.cluster, name: String(p.cluster), parent: null, children: [], n: 0, depth: 1 }); });
     cmap.forEach((c) => {
       if (c.parent && cmap.has(c.parent) && c.parent !== c.id) cmap.get(c.parent).children.push(c); else c.parent = null;
@@ -430,6 +449,7 @@
   function init(data) {
     clusters = data.clusters || [];
     papers = data.papers || [];
+    meta = data.meta || {};
     if (!papers.length) { fail("No papers found in data/papers.json."); return; }
     papers.forEach((p) => {
       p.refs = (p.refs || []).map((r) => (typeof r === "number" ? (papers[r] && papers[r].id) : r)).filter(Boolean);
@@ -470,6 +490,7 @@
     $("#rot").checked = !reducedMotion;
     refresh();
     resize();
+    renderAbout();
   }
 
   // ---------- scene objects ----------
@@ -784,6 +805,7 @@
   });
 
   function renderCrumbs() {
+    renderAbout();
     const box = $("#crumbs");
     box.textContent = "";
     if (!focus || !cmap.has(focus)) { box.hidden = true; return; }
@@ -898,11 +920,129 @@
     buildLegend(); refresh(); renderCrumbs();
   }
 
-  function select(p) {
+  function select(p, reveal) {
     selected = p;
     renderDetail(p);
     buildLinks();
     dirty = true;
+    if (reveal) $("#detail").scrollIntoView({ block: "nearest", behavior: reducedMotion ? "auto" : "smooth" });
+  }
+
+  // ---------- "About" panel: the whole field, or the subfield you are looking at ----------
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function sparkline(members, color) {
+    const years = yearMax - yearMin + 1, counts = new Array(years).fill(0);
+    members.forEach((p) => { counts[p.year - yearMin]++; });
+    let peak = 0, peakYear = yearMin;
+    counts.forEach((v, i) => { if (v > peak) { peak = v; peakYear = yearMin + i; } });
+    const W = 300, H = 64, top = 12, bottom = 14, bw = W / years;
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Papers per year, " + yearMin + " to " + yearMax + "; peak of " + peak + " in " + peakYear);
+    counts.forEach((v, i) => {
+      if (!v) return;
+      const h = Math.max(1, (v / Math.max(1, peak)) * (H - top - bottom));
+      const r = document.createElementNS(ns, "rect");
+      r.setAttribute("x", (i * bw + 0.5).toFixed(1)); r.setAttribute("width", Math.max(1, bw - 1).toFixed(1));
+      r.setAttribute("y", (H - bottom - h).toFixed(1)); r.setAttribute("height", h.toFixed(1));
+      r.setAttribute("fill", color);
+      const t = document.createElementNS(ns, "title"); t.textContent = (yearMin + i) + ": " + v + " papers"; r.append(t);
+      svg.append(r);
+    });
+    const txt = (x, y, str, anchor) => {
+      const t = document.createElementNS(ns, "text");
+      t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("font-size", "10"); t.setAttribute("fill", css("--mute"));
+      t.setAttribute("text-anchor", anchor); t.textContent = str; svg.append(t);
+    };
+    txt(0, H - 2, String(yearMin), "start");
+    txt(W, H - 2, String(yearMax), "end");
+    txt(W, 9, "peak " + peak + " (" + peakYear + ")", "end");
+    return svg;
+  }
+
+  function peopleLine(list) {
+    return list.map((a) => a[0] + " (" + a[1] + ")").join(", ");
+  }
+
+  function renderAbout() {
+    const box = $("#about");
+    if (!box || !N) return;
+    box.textContent = "";
+    const c = focus ? cmap.get(focus) : null;
+    const members = c ? papers.filter((p) => p._path.includes(c.id)) : papers;
+    $("#aboutSummary").textContent = c ? c.name : "The whole field";
+
+    if (c && c.parent) {
+      const names = [];
+      let a = cmap.get(c.parent), g = 0;
+      while (a && g++ < 12) { names.unshift(a.name); a = a.parent ? cmap.get(a.parent) : null; }
+      box.append(el("p", "crumbline", "In " + names.join(" \u203A ")));
+    }
+    let y0 = Infinity, y1 = -Infinity;
+    members.forEach((p) => { if (p.year < y0) y0 = p.year; if (p.year > y1) y1 = p.year; });
+    box.append(el("p", "count", members.length.toLocaleString() + " papers, " + y0 + " to " + y1
+      + (c && c.children.length ? ", in " + c.children.length + " smaller subfields" : "")));
+
+    box.append(el("h3", null, "Papers per year"));
+    box.append(sparkline(members, c && c.color ? "#" + c.color.getHexString() : css("--mute")));
+
+    box.append(el("h3", null, "Most cited"));
+    const ol = el("ol");
+    [...members].sort((a, b) => (b.cites || 0) - (a.cites || 0)).slice(0, 8).forEach((p) => {
+      const li = el("li");
+      const b = el("button", "linkish", p.title || p.id); b.type = "button";
+      b.onclick = () => select(p, true);
+      li.append(b, document.createTextNode(" "), el("span", "yr", "(" + p.year + ", " + (p.cites || 0).toLocaleString() + " citations)"));
+      ol.append(li);
+    });
+    box.append(ol);
+
+    if (c) {
+      // which other subfields at the same level this one is most linked with, through citations either way
+      const counts = new Map();
+      let total = 0;
+      const add = (q) => {
+        if (!q || q._path.includes(c.id)) return;
+        const k = q._path[Math.min(c.depth, q._path.length) - 1];
+        counts.set(k, (counts.get(k) || 0) + 1); total++;
+      };
+      members.forEach((p) => {
+        (p.refs || []).forEach((r) => add(byId.get(r)));
+        (citedBy.get(p.id) || []).forEach((r) => add(byId.get(r)));
+      });
+      const near = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+      if (near.length) {
+        box.append(el("h3", null, "Most connected to"));
+        const ul = el("ul");
+        near.forEach(([id, n]) => {
+          const other = cmap.get(id);
+          if (!other) return;
+          const li = el("li");
+          const b = el("button", "linkish", other.name); b.type = "button";
+          b.onclick = () => drill(other);
+          li.append(b, document.createTextNode(" "), el("span", "yr", "(" + Math.round((100 * n) / total) + "% of outside links)"));
+          ul.append(li);
+        });
+        box.append(ul);
+      }
+    }
+
+    const authors = c ? c.authors : meta.authors;
+    if (authors && authors.length) {
+      box.append(el("h3", null, "Most frequent authors"));
+      box.append(el("p", "people", peopleLine(authors)));
+    }
+    const inst = c ? c.institutions : meta.institutions;
+    if (inst && inst.length) {
+      box.append(el("h3", null, "Leading institutions (first author)"));
+      box.append(el("p", "people", peopleLine(inst)));
+    }
+    if ((authors && authors.length) || (inst && inst.length)) {
+      box.append(el("p", "note", "Names are matched by surname and initials, and institutions come from first-author affiliations, so both are approximate."));
+    }
   }
 
   function renderDetail(p) {
