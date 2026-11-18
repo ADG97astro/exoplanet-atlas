@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Exoplanet Atlas</title>
-<meta name="description" content="A 3D map of the exoplanet literature: papers, citations and subfields.">
+<meta name="description" content="A 3D map of the exoplanet literature: papers, citations, subfields and sub-subfields.">
 <style>
   :root {
     --bg: #e7ecef;
@@ -39,17 +39,21 @@
   }
   header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; padding: 14px 20px 10px; border-bottom: 1px solid var(--line); }
   h1 { margin: 0; font: 600 24px/1.1 var(--serif); letter-spacing: 0.01em; }
-  header p { margin: 0; color: var(--mute); max-width: 70ch; }
+  header p { margin: 0; color: var(--mute); max-width: 74ch; }
   #banner { margin: 0; padding: 8px 20px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14px; }
   #banner[hidden] { display: none; }
-  main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; }
+  main { display: grid; grid-template-columns: 1fr 350px; min-height: 0; }
 
   #stage { position: relative; min-height: 380px; min-width: 0; overflow: hidden; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
   canvas.dragging { cursor: grabbing; }
   #labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
   .lab { position: absolute; left: 0; top: 0; white-space: nowrap; text-shadow: 0 0 4px var(--bg), 0 0 4px var(--bg), 0 0 4px var(--bg); will-change: transform; }
-  .clab { font: 600 12px var(--sans); color: var(--ink); }
+  .clab { color: var(--ink); max-width: 230px; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; cursor: pointer; }
+  .clab:hover { text-decoration: underline; }
+  .clab.d1 { font: 600 13px var(--sans); }
+  .clab.d2 { font: 600 11.5px var(--sans); }
+  .clab.d3, .clab.d4 { font: 500 10.5px var(--sans); }
   .ylab { font: 12px var(--sans); color: var(--mute); }
   .ring { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 2px solid var(--ink); border-radius: 50%; pointer-events: none; display: none; }
   .ring.hover { border-style: dashed; width: 22px; height: 22px; margin: -11px 0 0 -11px; }
@@ -66,20 +70,34 @@
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   #status { color: var(--mute); font-size: 13px; margin-top: 4px; }
   fieldset { border: 0; margin: 0; padding: 0; }
+  fieldset[hidden] { display: none; }
   .opt { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-weight: 400; cursor: pointer; }
-  .row { display: flex; gap: 14px; margin-bottom: 6px; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
   .btns { display: flex; gap: 8px; margin-top: 8px; }
   .btns button { flex: 1; padding: 7px 10px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
   .btns button:hover { border-color: var(--mute); }
+  .small-btn { padding: 2px 8px; font: inherit; font-size: 13px; color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .small-btn:hover { border-color: var(--mute); }
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .field-title { margin: 0; }
   #yearbar { height: 8px; border-radius: 4px; margin: 8px 6px 2px; }
   #yearbar[hidden], #yearbarLabels[hidden] { display: none; }
   #yearbarLabels { display: flex; justify-content: space-between; margin: 0 6px; font-size: 12px; color: var(--mute); }
-  #legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-  #legend button { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 5px 6px; background: none; border: 0; border-radius: 6px; color: var(--ink); font: inherit; cursor: pointer; }
-  #legend button:hover { background: var(--bg); }
-  #legend button[aria-pressed="false"] { opacity: 0.4; }
-  #legend .sw { width: 12px; height: 12px; border-radius: 50%; }
-  #legend .n { color: var(--mute); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  #legend, #legend ul { list-style: none; margin: 0; padding: 0; }
+  #legend ul { margin-left: 18px; border-left: 1px solid var(--line); padding-left: 4px; }
+  .lrow { display: flex; align-items: center; gap: 2px; }
+  .caret { width: 22px; height: 26px; flex: none; padding: 0; background: none; border: 0; color: var(--mute); font-size: 11px; cursor: pointer; }
+  .caret.none { cursor: default; visibility: hidden; }
+  .tog { flex: 1; min-width: 0; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; text-align: left; padding: 4px 6px; background: none; border: 0; border-radius: 6px; color: var(--ink); font: inherit; cursor: pointer; }
+  .tog:hover { background: var(--bg); }
+  .tog[aria-pressed="false"] { opacity: 0.4; }
+  .tog .sw { width: 12px; height: 12px; border-radius: 50%; }
+  .tog .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tog .n { color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .only { flex: none; padding: 2px 6px; font: inherit; font-size: 12px; color: var(--mute); background: none; border: 0; border-radius: 6px; cursor: pointer; opacity: 0.55; }
+  .only:hover, .only:focus-visible { opacity: 1; color: var(--ink); background: var(--bg); }
+
   #detail { border-top: 1px solid var(--line); padding-top: 14px; }
   #detail h2 { margin: 0 0 6px; font: 600 17px/1.25 var(--serif); }
   #detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--mute); font-size: 14px; }
@@ -100,7 +118,7 @@
 <body>
 <header>
   <h1>Exoplanet Atlas</h1>
-  <p>Each dot is a paper. Height is time, with the oldest at the bottom. Papers in the same subfield form a column. Larger dots are cited more.</p>
+  <p>Each dot is a paper. Height is time, with the oldest at the bottom. Papers in the same subfield form a column, and subfields split into smaller subfields inside it. Larger dots are cited more.</p>
 </header>
 <p id="banner" hidden>Demo data: these dots are synthetic placeholders, not real papers. Add <code>data/papers.json</code> to replace them.</p>
 
@@ -111,7 +129,7 @@
     <div class="ring hover" id="ringHover"></div>
     <div class="ring" id="ringSel"></div>
     <div id="tip"></div>
-    <p id="help">Drag to rotate. Scroll to zoom. Right-drag or two fingers to pan. Click a paper for details.</p>
+    <p id="help">Drag to rotate. Scroll to zoom. Right-drag or two fingers to pan. Click a subfield name to look inside it, or a paper for details.</p>
     <div id="zoom">
       <button type="button" id="zin" aria-label="Zoom in">+</button>
       <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
@@ -134,6 +152,11 @@
       </div>
     </div>
 
+    <fieldset id="levelBox" hidden>
+      <legend class="field-title">Detail level</legend>
+      <div class="row" id="levels"></div>
+    </fieldset>
+
     <fieldset>
       <legend class="field-title">Colour</legend>
       <div class="row">
@@ -152,7 +175,10 @@
     </fieldset>
 
     <div>
-      <div class="field-title">Subfields</div>
+      <div class="head">
+        <div class="field-title">Subfields</div>
+        <button type="button" class="small-btn" id="showAll">Overview</button>
+      </div>
       <ul id="legend"></ul>
     </div>
 
@@ -188,11 +214,11 @@
 
   // ---------- state ----------
   let papers = [], clusters = [], byId = new Map(), citedBy = new Map();
+  let cmap = new Map(), roots = [], maxDepth = 1, level = 1;
   let yearMin = 0, yearMax = 0, yearCap = 0, yearCapF = 0, span = 1;
   let query = "", colorMode = "cluster", hasFlags = false;
-  let hidden = new Set(), selected = null, hover = null;
-  let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines;
-  let clusterCols = [], yearCols = [];
+  let hidden = new Set(), expanded = new Set(), selected = null, hover = null;
+  let N = 0, pos, colA, sizeA, alphaA, geom, points, linkLines, yearCols = [];
   let cam = { theta: HOME.theta, phi: HOME.phi, radius: HOME.radius, target: new THREE.Vector3() };
   let dirty = true, playing = false, interacting = false, pendingHover = null, last = performance.now();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -246,25 +272,40 @@
     let s = 7;
     const rnd = () => { s |= 0; s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
-    const names = ["Transit detection", "Radial velocity", "Direct imaging", "Microlensing", "Atmospheric retrieval", "Stellar activity", "Planet formation", "Demographics"];
-    const cl = names.map((name, i) => ({ id: "c" + i, name }));
+    const spec = [
+      { n: "Detection methods", k: [{ n: "Transit surveys", k: [{ n: "Kepler" }, { n: "TESS" }] }, { n: "Radial velocity" }, { n: "Direct imaging" }] },
+      { n: "Atmospheres", k: [{ n: "Retrieval" }, { n: "Transmission spectra" }, { n: "Clouds and hazes" }] },
+      { n: "Planet formation", k: [{ n: "Disks" }, { n: "Migration" }, { n: "Population synthesis" }] },
+      { n: "Host stars", k: [{ n: "Stellar activity" }, { n: "Asteroseismology" }] },
+      { n: "Occurrence", k: [{ n: "Kepler occurrence" }, { n: "Microlensing" }] }
+    ];
+    const cl = [], leaves = [];
+    const walk = (node, parent, id, cx, cz, rad) => {
+      cl.push({ id, name: node.n, parent });
+      if (!node.k) { leaves.push({ id, cx, cz, sd: Math.max(0.012, rad * 0.4) }); return; }
+      node.k.forEach((ch, j) => {
+        const a = (j / node.k.length) * 2 * Math.PI;
+        walk(ch, id, id + "." + j, cx + rad * 0.7 * Math.cos(a), cz + rad * 0.7 * Math.sin(a), rad * 0.42);
+      });
+    };
+    spec.forEach((t, i) => { const a = (i / spec.length) * 2 * Math.PI; walk(t, null, "c" + i, 0.5 + 0.3 * Math.cos(a), 0.5 + 0.3 * Math.sin(a), 0.13); });
     const ps = [];
-    for (let i = 0; i < 2500; i++) {
-      const c = Math.floor(rnd() * 8), a = (c / 8) * 2 * Math.PI;
+    for (let i = 0; i < 3000; i++) {
+      const lf = leaves[Math.floor(rnd() * leaves.length)];
       const year = 1995 + Math.floor(31 * Math.sqrt(rnd()));
       ps.push({
         id: "demo" + i, title: "Demo paper " + (i + 1), year,
-        x: 0.5 + 0.32 * Math.cos(a) + gauss() * 0.05,
-        z: 0.5 + 0.32 * Math.sin(a) + gauss() * 0.05,
-        cluster: "c" + c,
+        x: Math.min(0.99, Math.max(0.01, lf.cx + gauss() * lf.sd)),
+        z: Math.min(0.99, Math.max(0.01, lf.cz + gauss() * lf.sd)),
+        cluster: lf.id,
         cites: Math.floor(Math.exp(gauss() * 1.2 + 2) * (2027 - year) / 10),
         flag: rnd() < 0.02, refs: []
       });
     }
-    const byCluster = {};
-    ps.forEach((p) => (byCluster[p.cluster] = byCluster[p.cluster] || []).push(p));
+    const byLeaf = {};
+    ps.forEach((p) => (byLeaf[p.cluster] = byLeaf[p.cluster] || []).push(p));
     ps.forEach((p) => {
-      const older = byCluster[p.cluster].filter((q) => q.year < p.year);
+      const older = byLeaf[p.cluster].filter((q) => q.year < p.year);
       for (let n = 0; n < 3 && older.length; n++) p.refs.push(older[Math.floor(rnd() * older.length)].id);
     });
     return { clusters: cl, papers: ps };
@@ -277,6 +318,47 @@
   }
   const yWorld = (t) => ((t - yearMin) / span) * HEIGHT - HEIGHT / 2;
 
+  // ---------- cluster tree ----------
+  function buildTree() {
+    cmap = new Map();
+    clusters.forEach((c) => cmap.set(c.id, { id: c.id, name: c.name || String(c.id), parent: c.parent || null, children: [], n: 0, depth: 1 }));
+    papers.forEach((p) => { if (!cmap.has(p.cluster)) cmap.set(p.cluster, { id: p.cluster, name: String(p.cluster), parent: null, children: [], n: 0, depth: 1 }); });
+    cmap.forEach((c) => {
+      if (c.parent && cmap.has(c.parent) && c.parent !== c.id) cmap.get(c.parent).children.push(c); else c.parent = null;
+    });
+    roots = [...cmap.values()].filter((c) => !c.parent);
+    maxDepth = 1;
+    const setDepth = (c, d, seen) => {
+      if (seen > 12) return;
+      c.depth = d; maxDepth = Math.max(maxDepth, d);
+      c.children.forEach((k) => setDepth(k, d + 1, seen + 1));
+    };
+    roots.forEach((r) => setDepth(r, 1, 0));
+    // colours: top level from the palette, children are shades around the parent's hue
+    const hsl = { h: 0, s: 0, l: 0 };
+    const paint = (c, depth) => {
+      const k = c.children.length;
+      c.children.forEach((ch, j) => {
+        c.color.getHSL(hsl);
+        const shift = (j - (k - 1) / 2) * Math.min(0.05, 0.14 / Math.max(1, k)) * Math.pow(0.7, depth - 1);
+        const light = 0.4 + 0.22 * (k > 1 ? j / (k - 1) : 0.5);
+        ch.color = new THREE.Color().setHSL((hsl.h + shift + 1) % 1, Math.max(0.45, hsl.s), light);
+        paint(ch, depth + 1);
+      });
+    };
+    roots.forEach((r, i) => { r.color = colorFor(i); paint(r, 1); });
+    // each paper's path from top-level cluster down to its own
+    papers.forEach((p) => {
+      const path = [];
+      let c = cmap.get(p.cluster), guard = 0;
+      while (c && guard++ < 12) { path.unshift(c.id); c = c.parent ? cmap.get(c.parent) : null; }
+      p._path = path;
+      path.forEach((id) => { cmap.get(id).n++; });
+    });
+  }
+  const atLevel = (p) => cmap.get(p._path[Math.min(level, p._path.length) - 1]);
+  const isHiddenCluster = (c) => { let g = 0; while (c && g++ < 12) { if (hidden.has(c.id)) return true; c = c.parent ? cmap.get(c.parent) : null; } return false; };
+
   function init(data) {
     clusters = data.clusters || [];
     papers = data.papers || [];
@@ -288,25 +370,25 @@
     span = yearMax + 1 - yearMin;
     yearCap = yearMax; yearCapF = yearMax;
     hasFlags = papers.some((p) => p.flag);
-
-    clusterCols = clusters.map((c, i) => colorFor(i));
+    yearCols = [];
     for (let y = yearMin; y <= yearMax; y++) yearCols.push(yearColor((y - yearMin) / Math.max(1, yearMax - yearMin)));
 
     papers.forEach((p, i) => {
       const t = p.year + ((i * 0.61803) % 1) * 0.9;
-      p._wx = (p.x * 2 - 1);
-      p._wz = ((p.z == null ? 0.5 : p.z) * 2 - 1);
+      p._wx = p.x * 2 - 1;
+      p._wz = (p.z == null ? 0.5 : p.z) * 2 - 1;
       p._wy = yWorld(t);
       p._size = Math.min(0.05, 0.012 + Math.sqrt(Math.max(0, p.cites || 0)) * 0.0035);
-      p._c = Math.max(0, clusters.findIndex((c) => c.id === p.cluster));
       p._lc = (p.title || "").toLowerCase();
       (p.refs || []).forEach((r) => { if (!citedBy.has(r)) citedBy.set(r, []); citedBy.get(r).push(p.id); });
     });
 
+    buildTree();
     buildPoints();
     buildGrid();
     buildLegend();
     buildClusterLabels();
+    buildLevelControl();
 
     const yr = $("#year");
     yr.min = yearMin; yr.max = yearMax; yr.value = yearMax;
@@ -357,13 +439,24 @@
   function buildClusterLabels() {
     const box = $("#labels");
     box.querySelectorAll(".clab").forEach((n) => n.remove());
-    clusters.forEach((c) => {
-      let sx = 0, sz = 0, n = 0;
-      for (const p of papers) if (p.cluster === c.id) { sx += p._wx; sz += p._wz; n++; }
-      if (!n) return;
+    const sums = new Map();
+    for (const p of papers) {
+      for (const id of p._path) {
+        const s = sums.get(id) || { x: 0, z: 0, n: 0 };
+        s.x += p._wx; s.z += p._wz; s.n++;
+        sums.set(id, s);
+      }
+    }
+    cmap.forEach((c) => {
+      const s = sums.get(c.id);
+      if (!s) return;
       const d = document.createElement("div");
-      d.className = "lab clab"; d.textContent = c.name;
-      d._p = new THREE.Vector3(sx / n, HEIGHT / 2 + 0.12, sz / n);
+      d.className = "lab clab d" + Math.min(4, c.depth);
+      d.textContent = c.name;
+      d.title = c.children.length ? c.name + " (click to look inside)" : c.name + " (click to show only this)";
+      d._c = c;
+      d.onclick = () => drill(c);
+      d._p = new THREE.Vector3(s.x / s.n, HEIGHT / 2 + 0.12, s.z / s.n);
       box.append(d);
     });
   }
@@ -392,11 +485,13 @@
     let shown = 0;
     for (let i = 0; i < N; i++) {
       const p = papers[i];
-      const vis = p.year <= yearCap && !hidden.has(p.cluster);
+      let off = p.year > yearCap;
+      if (!off && hidden.size) for (const id of p._path) if (hidden.has(id)) { off = true; break; }
+      const vis = !off;
       const m = !query || p._lc.includes(query);
       p._vis = vis; p._m = m;
       let a = !vis ? 0 : (m ? 0.9 : 0.07), size = p._size;
-      let c = byYear ? yearCols[p.year - yearMin] : clusterCols[p._c];
+      let c = byYear ? yearCols[p.year - yearMin] : atLevel(p).color;
       if (flagMode && vis) {
         if (p.flag) { c = FLAG_COLOR; size *= 1.7; a = m ? 1 : 0.1; } else a = Math.min(a, 0.12);
       }
@@ -409,7 +504,7 @@
     geom.attributes.aAlpha.needsUpdate = true;
     $("#yearLabel").textContent = yearCap;
     $("#status").textContent = shown + " of " + N + " papers shown";
-    if (selected && !selected._vis) selected = null, renderDetail(null);
+    if (selected && !selected._vis) { selected = null; renderDetail(null); }
     buildLinks();
     dirty = true;
   }
@@ -475,18 +570,24 @@
     el.style.display = "block";
     el.style.transform = "translate(" + s.x.toFixed(1) + "px," + s.y.toFixed(1) + "px)";
   }
+  function labelShown(c) {
+    if (!(c.depth === level || (c.depth < level && !c.children.length))) return false;
+    if (level > 1 && c.n < Math.max(4, 0.004 * N)) return false;
+    return !isHiddenCluster(c);
+  }
   function updateOverlays() {
     const showNames = $("#names").checked;
     $("#labels").querySelectorAll(".lab").forEach((d) => {
-      if (d.classList.contains("clab") && !showNames) { d.style.display = "none"; return; }
+      const isC = !!d._c;
+      if (isC && (!showNames || !labelShown(d._c))) { d.style.display = "none"; return; }
       const s = toScreen(d._p.x, d._p.y, d._p.z, {});
       if (!s.vis) { d.style.display = "none"; return; }
       d.style.display = "block";
-      d.style.transform = "translate(" + s.x.toFixed(1) + "px," + s.y.toFixed(1) + "px) translate(" + (d.classList.contains("clab") ? "-50%" : "4px") + ",-50%)";
+      d.style.transform = "translate(" + s.x.toFixed(1) + "px," + s.y.toFixed(1) + "px) translate(" + (isC ? "-50%" : "4px") + ",-50%)";
     });
     const rs = $("#ringSel"), rh = $("#ringHover");
-    if (selected && selected._vis) { place(rs, tmp.set(selected._wx, selected._wy, selected._wz).clone()); } else rs.style.display = "none";
-    if (hover && hover !== selected && hover._vis) { place(rh, tmp.set(hover._wx, hover._wy, hover._wz).clone()); } else rh.style.display = "none";
+    if (selected && selected._vis) place(rs, new THREE.Vector3(selected._wx, selected._wy, selected._wz)); else rs.style.display = "none";
+    if (hover && hover !== selected && hover._vis) place(rh, new THREE.Vector3(hover._wx, hover._wy, hover._wz)); else rh.style.display = "none";
   }
 
   // ---------- loop ----------
@@ -502,11 +603,12 @@
     if ($("#rot").checked && !interacting && !reducedMotion) { cam.theta += 0.07 * dt; dirty = true; }
     if (pendingHover) {
       const h = pick(pendingHover.x, pendingHover.y);
+      const tip = $("#tip");
       if (h !== hover) {
         hover = h; dirty = true;
-        const tip = $("#tip");
-        if (h) { tip.textContent = h.title + " (" + h.year + ")"; tip.style.display = "block"; tip.style.transform = "translate(" + (pendingHover.x + 14) + "px," + (pendingHover.y + 14) + "px)"; } else tip.style.display = "none";
-      } else if (h) { $("#tip").style.transform = "translate(" + (pendingHover.x + 14) + "px," + (pendingHover.y + 14) + "px)"; }
+        if (h) { tip.textContent = h.title + " (" + h.year + ")"; tip.style.display = "block"; } else tip.style.display = "none";
+      }
+      if (h) tip.style.transform = "translate(" + (pendingHover.x + 14) + "px," + (pendingHover.y + 14) + "px)";
       pendingHover = null;
     }
     if (dirty && N) {
@@ -534,7 +636,7 @@
   });
   canvas.addEventListener("pointermove", (e) => {
     const prev = ptrs.get(e.pointerId);
-    if (!prev) { const r = rel(e); pendingHover = r; return; }
+    if (!prev) { pendingHover = rel(e); return; }
     const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 1 && drag) {
@@ -587,27 +689,82 @@
   }));
   $("#names").addEventListener("change", () => { dirty = true; });
   $("#flags").addEventListener("change", refresh);
+  $("#showAll").onclick = () => { hidden = new Set(); expanded = new Set(); setLevel(1); buildLegend(); refresh(); };
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (N) { buildGrid(); buildLinks(); dirty = true; } });
+
+  function buildLevelControl() {
+    const box = $("#levels");
+    box.textContent = "";
+    $("#levelBox").hidden = maxDepth < 2;
+    if (maxDepth < 2) return;
+    for (let l = 1; l <= maxDepth; l++) {
+      const lab = document.createElement("label"); lab.className = "opt";
+      const r = document.createElement("input"); r.type = "radio"; r.name = "lv"; r.value = l; r.checked = l === level;
+      r.addEventListener("change", () => { level = l; refresh(); });
+      const word = l === 1 ? "Broad" : (l === maxDepth ? (l === 2 ? "Fine" : "Finest") : "Level " + l);
+      lab.append(r, document.createTextNode(word));
+      box.append(lab);
+    }
+  }
+
+  function legendItem(c) {
+    const li = document.createElement("li");
+    const row = document.createElement("div"); row.className = "lrow";
+    const caret = document.createElement("button"); caret.type = "button"; caret.className = "caret";
+    if (c.children.length) {
+      const open = expanded.has(c.id);
+      caret.textContent = open ? "\u25BE" : "\u25B8";
+      caret.setAttribute("aria-expanded", String(open));
+      caret.setAttribute("aria-label", (open ? "Collapse " : "Expand ") + c.name);
+      caret.onclick = () => { if (expanded.has(c.id)) expanded.delete(c.id); else expanded.add(c.id); buildLegend(); };
+    } else { caret.classList.add("none"); caret.tabIndex = -1; caret.setAttribute("aria-hidden", "true"); }
+    const tog = document.createElement("button"); tog.type = "button"; tog.className = "tog";
+    tog.setAttribute("aria-pressed", String(!hidden.has(c.id)));
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = "#" + c.color.getHexString();
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = c.name; nm.title = c.name;
+    const n = document.createElement("span"); n.className = "n"; n.textContent = c.n;
+    tog.append(sw, nm, n);
+    tog.onclick = () => { if (hidden.has(c.id)) hidden.delete(c.id); else hidden.add(c.id); buildLegend(); refresh(); };
+    const only = document.createElement("button"); only.type = "button"; only.className = "only"; only.textContent = "only";
+    only.setAttribute("aria-label", "Show only " + c.name);
+    only.onclick = () => showOnly(c.id);
+    row.append(caret, tog, only);
+    li.append(row);
+    if (c.children.length && expanded.has(c.id)) {
+      const ul = document.createElement("ul");
+      c.children.forEach((k) => ul.append(legendItem(k)));
+      li.append(ul);
+    }
+    return li;
+  }
 
   function buildLegend() {
     const ul = $("#legend");
     ul.textContent = "";
-    clusters.forEach((c, i) => {
-      const count = papers.filter((p) => p.cluster === c.id).length;
-      const li = document.createElement("li"), b = document.createElement("button");
-      b.type = "button"; b.setAttribute("aria-pressed", "true");
-      const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = "#" + clusterCols[i].getHexString();
-      const nm = document.createElement("span"); nm.textContent = c.name;
-      const n = document.createElement("span"); n.className = "n"; n.textContent = count;
-      b.append(sw, nm, n);
-      b.onclick = () => {
-        const off = !hidden.has(c.id);
-        if (off) hidden.add(c.id); else hidden.delete(c.id);
-        b.setAttribute("aria-pressed", String(!off));
-        refresh();
-      };
-      li.append(b); ul.append(li);
-    });
+    roots.forEach((r) => ul.append(legendItem(r)));
+  }
+
+  function setLevel(l) {
+    level = l;
+    document.querySelectorAll('input[name="lv"]').forEach((r) => { r.checked = +r.value === l; });
+  }
+
+  // click a subfield name on the map: show only it, and if it has subfields, colour and label those
+  function drill(c) {
+    if (c.children.length) { expanded.add(c.id); setLevel(Math.min(maxDepth, c.depth + 1)); }
+    showOnly(c.id);
+  }
+
+  function showOnly(id) {
+    hidden = new Set();
+    let c = cmap.get(id), g = 0;
+    while (c && g++ < 12) {
+      const sibs = c.parent ? cmap.get(c.parent).children : roots;
+      sibs.forEach((s) => { if (s.id !== c.id) hidden.add(s.id); });
+      if (c.parent) expanded.add(c.parent);
+      c = c.parent ? cmap.get(c.parent) : null;
+    }
+    buildLegend(); refresh();
   }
 
   function select(p) {
@@ -629,7 +786,7 @@
     const dl = document.createElement("dl");
     const row = (k, v) => { const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; dl.append(dt, dd); };
     row("Year", p.year);
-    row("Subfield", (clusters[p._c] || {}).name || "n/a");
+    row("Subfield", p._path.map((id) => cmap.get(id).name).join(" \u203A "));
     row("Citations", p.cites == null ? "n/a" : p.cites);
     row("Cites here", (p.refs || []).filter((id) => byId.has(id)).length);
     row("Cited here", (citedBy.get(p.id) || []).length);

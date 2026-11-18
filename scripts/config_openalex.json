@@ -1,0 +1,22 @@
+{
+  "source": "OpenAlex",
+  "seed_queries": [
+    "\"transit\" AND (\"exoplanet\" OR \"planet candidate\") AND (\"neural network\" OR \"machine learning\" OR \"deep learning\" OR \"random forest\" OR \"convolutional\")",
+    "\"atmospheric retrieval\" AND (\"neural network\" OR \"machine learning\" OR \"deep learning\" OR \"reinforcement learning\" OR \"normalizing flow\" OR \"simulation-based inference\")"
+  ],
+  "filter_extra": "type:article|preprint",
+  "year_min": 2005,
+  "year_max": 2026,
+  "backward_year_min": 1990,
+  "max_seeds": 1500,
+  "min_seed_support": 2,
+  "max_backward": 2500,
+  "forward_from_top_seeds": 100,
+  "max_forward": 2500,
+  "drop_isolates": true,
+  "resolution": 1.0,
+  "max_depth": 3,
+  "min_split_size": 150,
+  "max_children": 8,
+  "min_child_size": 20
+}

@@ -1,0 +1,41 @@
+{
+  "seed_queries": [
+    "abs:(\"exoplanet\" OR \"exoplanets\" OR \"exoplanetary\" OR \"extrasolar planet\" OR \"extrasolar planets\")"
+  ],
+  "year_min": 1995,
+  "year_max": 2026,
+  "backward_year_min": 1990,
+  "seed_year_slices": [
+    [
+      1995,
+      2004
+    ],
+    [
+      2005,
+      2009
+    ],
+    [
+      2010,
+      2014
+    ],
+    [
+      2015,
+      2019
+    ],
+    [
+      2020,
+      2026
+    ]
+  ],
+  "max_seeds_per_slice": 500,
+  "max_seeds": 2500,
+  "min_seed_support": 3,
+  "max_backward": 2500,
+  "max_forward": 2000,
+  "drop_isolates": true,
+  "resolution": 1.0,
+  "max_depth": 3,
+  "min_split_size": 150,
+  "max_children": 8,
+  "min_child_size": 20
+}
