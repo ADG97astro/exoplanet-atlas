@@ -60,6 +60,7 @@
   #stage { position: relative; min-height: 380px; min-width: 0; overflow: hidden; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
   canvas.dragging { cursor: grabbing; }
+  canvas.panmode { cursor: move; }
   #labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
   .lab { position: absolute; left: 0; top: 0; white-space: nowrap; text-shadow: 0 0 4px var(--bg), 0 0 4px var(--bg), 0 0 4px var(--bg); will-change: transform; }
   .clab { color: var(--ink); max-width: 230px; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; cursor: pointer; }
@@ -74,6 +75,8 @@
   #help { position: absolute; left: 12px; bottom: 10px; margin: 0; font-size: 12px; color: var(--mute); max-width: 60%; text-shadow: 0 0 4px var(--bg), 0 0 4px var(--bg); pointer-events: none; }
   #zoom { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
   #zoom button { width: 36px; height: 36px; font-size: 18px; line-height: 1; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  #zoom button[aria-pressed="true"] { background: var(--focus); border-color: var(--focus); color: #fff; }
+  #zoom .sep { height: 4px; }
   .message { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--mute); }
 
   aside { background: var(--panel); border-left: 1px solid var(--line); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
@@ -168,8 +171,11 @@
     <div class="ring hover" id="ringHover"></div>
     <div class="ring" id="ringSel"></div>
     <div id="tip"></div>
-    <p id="help">Drag to rotate. Scroll to zoom. Right-drag or two fingers to pan. Click a subfield name to look inside it (Back or Esc goes up), or a paper for details.</p>
+    <p id="help">Drag to rotate; turn on the move button (or hold Shift, or right-drag) to pan. Scroll zooms toward the pointer. Double-click to centre on a spot. Click a subfield name to look inside it, or a paper for details.</p>
     <div id="zoom">
+      <button type="button" id="panBtn" aria-pressed="false" aria-label="Move mode: drag to pan instead of rotate" title="Move mode: drag to pan (M)">&#10021;</button>
+      <button type="button" id="centerBtn" aria-label="Recentre and reset view" title="Reset view (Home)">&#8962;</button>
+      <div class="sep"></div>
       <button type="button" id="zin" aria-label="Zoom in">+</button>
       <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
     </div>
@@ -759,7 +765,7 @@
     canvas.setPointerCapture(e.pointerId);
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     interacting = true;
-    if (ptrs.size === 1) drag = { moved: false, sx: e.clientX, sy: e.clientY, pan: e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey };
+    if (ptrs.size === 1) drag = { moved: false, sx: e.clientX, sy: e.clientY, pan: panMode || e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey };
     if (ptrs.size === 2) { pinch = twoState(); drag.moved = true; }
   });
   canvas.addEventListener("pointermove", (e) => {
@@ -788,9 +794,54 @@
   canvas.addEventListener("pointerup", endPtr);
   canvas.addEventListener("pointercancel", endPtr);
   canvas.addEventListener("pointerleave", () => { if (!ptrs.size) { pendingHover = null; if (hover) { hover = null; $("#tip").style.display = "none"; dirty = true; } } });
-  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 1 / 1.12 : 1.12); }, { passive: false });
+  // point on the plane through the view centre, under the given screen position
+  function worldAt(mx, my) {
+    placeCamera();
+    const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
+    const dir = new THREE.Vector3((mx / w) * 2 - 1, -(my / h) * 2 + 1, 0.5).unproject(camera).sub(camera.position).normalize();
+    const n = new THREE.Vector3(); camera.getWorldDirection(n);
+    const denom = dir.dot(n);
+    if (Math.abs(denom) < 1e-6) return null;
+    const t = cam.target.clone().sub(camera.position).dot(n) / denom;
+    return t > 0 ? camera.position.clone().addScaledVector(dir, t) : null;
+  }
+  // zoom toward (or away from) the point under the pointer, like a map
+  function zoomAt(f, mx, my) {
+    const pt = worldAt(mx, my);
+    const before = cam.radius;
+    zoom(f);
+    if (pt) cam.target.lerp(pt, 1 - cam.radius / before);
+    dirty = true;
+  }
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = rel(e);
+    const step = Math.min(1.5, Math.max(0.67, Math.pow(1.0015, e.deltaY))); // smooth on trackpads, ~12% per mouse notch
+    zoomAt(step, r.x, r.y);
+  }, { passive: false });
+  canvas.addEventListener("dblclick", (e) => {
+    const r = rel(e);
+    const p = pick(r.x, r.y);
+    if (p) cam.target.set(p._wx, p._wy, p._wz);
+    else { const pt = worldAt(r.x, r.y); if (pt) cam.target.copy(pt); }
+    zoom(0.75);
+  });
+  let panMode = false;
+  function setPanMode(on) {
+    panMode = on;
+    $("#panBtn").setAttribute("aria-pressed", String(on));
+    canvas.classList.toggle("panmode", on);
+  }
+  $("#panBtn").onclick = () => setPanMode(!panMode);
+  $("#centerBtn").onclick = () => resetView();
   canvas.addEventListener("keydown", (e) => {
     const k = e.key;
+    if (e.shiftKey && k.startsWith("Arrow")) {
+      const d = 40;
+      if (k === "ArrowLeft") pan(d, 0); else if (k === "ArrowRight") pan(-d, 0); else if (k === "ArrowUp") pan(0, d); else pan(0, -d);
+      e.preventDefault(); return;
+    }
+    if (k === "m" || k === "M") { setPanMode(!panMode); e.preventDefault(); return; }
     if (k === "ArrowLeft") rotate(-20, 0); else if (k === "ArrowRight") rotate(20, 0);
     else if (k === "ArrowUp") rotate(0, -20); else if (k === "ArrowDown") rotate(0, 20);
     else if (k === "+" || k === "=") zoom(1 / 1.15); else if (k === "-" || k === "_") zoom(1.15);
